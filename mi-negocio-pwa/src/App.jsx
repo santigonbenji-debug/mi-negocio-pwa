@@ -1,134 +1,72 @@
-import { useState } from 'react'
-import { Button } from './components/common/Button'
-import { Card } from './components/common/Card'
-import { Input } from './components/common/Input'
-import { Modal } from './components/common/Modal'
-import { Badge } from './components/common/Badge'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
+import { Login } from './pages/Login'
+import { Registro } from './pages/Registro'
+import { useAuthStore } from './store/authStore'
+import { useEffect } from 'react'
 
 function App() {
-  const [modalAbierto, setModalAbierto] = useState(false)
-  const [nombre, setNombre] = useState('')
-  
-  return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-4xl mx-auto space-y-8">
-        
-        {/* Header */}
+  const { user, loading, inicializar } = useAuthStore()
+
+  useEffect(() => {
+    inicializar()
+  }, [inicializar])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
-          <h1 className="text-5xl font-bold text-primary mb-2">
-            🎨 Sistema de Diseño Morado
-          </h1>
-          <p className="text-gray-600">
-            Todos los componentes funcionando correctamente
-          </p>
+          <div className="text-6xl mb-4">🏪</div>
+          <p className="text-xl text-gray-600">Cargando...</p>
         </div>
-        
-        {/* Botones */}
-        <Card>
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">Botones</h2>
-          <div className="flex flex-wrap gap-4">
-            <Button variant="primary">Morado Principal</Button>
-            <Button variant="success">Verde Éxito</Button>
-            <Button variant="danger">Rojo Peligro</Button>
-            <Button variant="secondary">Gris Secundario</Button>
-            <Button variant="primary" disabled>Deshabilitado</Button>
-          </div>
-        </Card>
-        
-        {/* Campos de entrada */}
-        <Card>
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">Campos de Entrada</h2>
-          <div className="space-y-4">
-            <Input 
-              label="Nombre del producto" 
-              placeholder="Ej: Coca-Cola 500ml"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-            />
-            <Input 
-              label="Campo con error" 
-              placeholder="Este campo tiene un error"
-              error="Este campo es obligatorio"
-            />
-            <Input 
-              label="Precio" 
-              type="number"
-              placeholder="0.00"
-            />
-          </div>
-        </Card>
-        
-        {/* Estados con Badges */}
-        <Card>
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">Estados (Badges)</h2>
-          <div className="flex flex-wrap gap-3">
-            <Badge variant="success">✓ Activo</Badge>
-            <Badge variant="danger">⚠ Stock bajo</Badge>
-            <Badge variant="warning">⏳ Pendiente</Badge>
-            <Badge variant="primary">★ Destacado</Badge>
-            <Badge variant="default">Info general</Badge>
-          </div>
-        </Card>
-        
-        {/* Modal */}
-        <Card>
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">Ventana Modal</h2>
-          <Button onClick={() => setModalAbierto(true)}>
-            Abrir Modal
-          </Button>
-        </Card>
-        
-        {/* Tarjetas de ejemplo */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="text-center">
-            <div className="text-4xl mb-2">📦</div>
-            <h3 className="font-bold text-lg">Inventario</h3>
-            <p className="text-gray-600 text-sm mt-2">
-              Control de productos
-            </p>
-          </Card>
-          <Card className="text-center">
-            <div className="text-4xl mb-2">💰</div>
-            <h3 className="font-bold text-lg">Caja</h3>
-            <p className="text-gray-600 text-sm mt-2">
-              Gestión de ventas
-            </p>
-          </Card>
-          <Card className="text-center">
-            <div className="text-4xl mb-2">📊</div>
-            <h3 className="font-bold text-lg">Reportes</h3>
-            <p className="text-gray-600 text-sm mt-2">
-              Análisis de datos
-            </p>
-          </Card>
-        </div>
-        
       </div>
-      
-      {/* Modal de ejemplo */}
-      <Modal 
-        isOpen={modalAbierto} 
-        onClose={() => setModalAbierto(false)} 
-        title="Ejemplo de Modal"
-      >
-        <p className="text-gray-600 mb-4">
-          Este es un modal funcionando correctamente. 
-          Puedes cerrar haciendo click en la X, el botón de abajo, 
-          o haciendo click fuera de esta ventana.
-        </p>
-        <div className="space-y-3">
-          <Input label="Campo dentro del modal" placeholder="Escribe algo..." />
-          <Button 
-            variant="success" 
-            onClick={() => setModalAbierto(false)}
-            className="w-full"
-          >
-            Cerrar Modal
-          </Button>
-        </div>
-      </Modal>
-      
-    </div>
+    )
+  }
+
+  return (
+    <BrowserRouter>
+      <Toaster position="top-right" />
+      <Routes>
+        {/* Rutas públicas */}
+        <Route 
+          path="/login" 
+          element={!user ? <Login /> : <Navigate to="/dashboard" />} 
+        />
+        <Route 
+          path="/registro" 
+          element={!user ? <Registro /> : <Navigate to="/dashboard" />} 
+        />
+        
+        {/* Rutas protegidas */}
+        <Route 
+          path="/dashboard" 
+          element={user ? (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+              <div className="text-center">
+                <h1 className="text-4xl font-bold text-primary mb-4">
+                  ✅ ¡Dashboard Próximamente!
+                </h1>
+                <p className="text-gray-600 mb-6">
+                  Usuario: {user.email}
+                </p>
+                <button
+                  onClick={() => useAuthStore.getState().logout()}
+                  className="bg-danger text-white px-6 py-3 rounded-lg hover:bg-red-600"
+                >
+                  Cerrar Sesión
+                </button>
+              </div>
+            </div>
+          ) : <Navigate to="/login" />} 
+        />
+        
+        {/* Ruta por defecto */}
+        <Route 
+          path="/" 
+          element={<Navigate to={user ? "/dashboard" : "/login"} />} 
+        />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
