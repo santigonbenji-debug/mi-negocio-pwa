@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast'
 import { Login } from './pages/Login'
 import { Registro } from './pages/Registro'
 import { Inventario } from './pages/Inventario'
+import { Caja } from './pages/Caja'
 import { useAuthStore } from './store/authStore'
 import { useEffect } from 'react'
 
@@ -31,14 +32,18 @@ function App() {
         {/* Rutas públicas */}
         <Route 
           path="/login" 
-          element={!user ? <Login /> : <Navigate to="/inventario" />} 
+          element={!user ? <Login /> : <Navigate to="/caja" />} 
         />
         <Route 
           path="/registro" 
-          element={!user ? <Registro /> : <Navigate to="/inventario" />} 
+          element={!user ? <Registro /> : <Navigate to="/caja" />} 
         />
         
         {/* Rutas protegidas */}
+        <Route 
+          path="/caja" 
+          element={user ? <Caja /> : <Navigate to="/login" />} 
+        />
         <Route 
           path="/inventario" 
           element={user ? <Inventario /> : <Navigate to="/login" />} 
@@ -47,7 +52,7 @@ function App() {
         {/* Ruta por defecto */}
         <Route 
           path="/" 
-          element={<Navigate to={user ? "/inventario" : "/login"} />} 
+          element={<Navigate to={user ? "/caja" : "/login"} />} 
         />
       </Routes>
     </BrowserRouter>
