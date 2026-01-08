@@ -1,38 +1,46 @@
-// ============================================
-// ¿QUÉ HACE ESTO?
-// Guarda el usuario actual en toda la aplicación
-//
-// ANALOGÍA:
-// Como tener una pizarra en tu negocio que dice:
-// "Hoy está trabajando: [nombre del empleado]"
-// Cualquier parte de tu app puede mirar esta pizarra
-//
-// USO:
-// const { user, login, logout } = useAuthStore()
-// await login(email, password)
-// ============================================
-
 import { create } from 'zustand'
 import { authService } from '../services/auth'
+import { supabase } from '../services/supabase'
 
 export const useAuthStore = create((set) => ({
   user: null,
+  userData: null, // Datos completos del usuario (con negocio_id)
   loading: true,
 
-  setUser: (user) => set({ user, loading: false }),
+  setUser: (user, userData) => set({ user, userData, loading: false }),
 
   inicializar: async () => {
     try {
       const user = await authService.usuarioActual()
-      set({ user, loading: false })
+      
+      if (user) {
+        // Obtener datos completos del usuario de la tabla usuarios
+        const { data: userData } = await supabase
+          .from('usuarios')
+          .select('*, negocios(*)')
+          .eq('id', user.id)
+          .single()
+        
+        set({ user, userData, loading: false })
+      } else {
+        set({ user: null, userData: null, loading: false })
+      }
     } catch (error) {
-      set({ user: null, loading: false })
+      set({ user: null, userData: null, loading: false })
     }
   },
 
   login: async (email, password) => {
     const data = await authService.login(email, password)
-    set({ user: data.user })
+    
+    // Obtener datos completos
+    const { data: userData } = await supabase
+      .from('usuarios')
+      .select('*, negocios(*)')
+      .eq('id', data.user.id)
+      .single()
+    
+    set({ user: data.user, userData })
     return data
   },
 
@@ -44,6 +52,6 @@ export const useAuthStore = create((set) => ({
 
   logout: async () => {
     await authService.logout()
-    set({ user: null })
+    set({ user: null, userData: null })
   }
 }))
