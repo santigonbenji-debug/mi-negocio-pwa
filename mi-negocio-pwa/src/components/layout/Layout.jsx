@@ -27,7 +27,8 @@ export const Layout = ({ children }) => {
     navigate('/login')
   }
 
- const menuItems = [
+const menuItems = [
+  { path: '/dashboard', label: '📊 Dashboard', icon: '📊' },
   { path: '/ventas', label: '🛒 Ventas', icon: '🛒' },
   { path: '/caja', label: '💰 Caja', icon: '💰' },
   { path: '/inventario', label: '📦 Inventario', icon: '📦' },
@@ -42,7 +43,7 @@ export const Layout = ({ children }) => {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center space-x-8">
-              <h1 className="text-2xl font-bold text-primary cursor-pointer" onClick={() => navigate('/ventas')}>
+              <h1 className="text-2xl font-bold text-primary cursor-pointer" onClick={() => navigate('/dashboard')}>
                 🏪 Mi Negocio
               </h1>
 

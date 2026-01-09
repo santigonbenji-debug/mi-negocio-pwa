@@ -6,6 +6,7 @@ import { Inventario } from './pages/Inventario'
 import { Caja } from './pages/Caja'
 import { PuntoVenta } from './pages/PuntoVenta'
 import { Fiados } from './pages/Fiados'
+import { Dashboard } from './pages/Dashboard'
 import { useAuthStore } from './store/authStore'
 import { useEffect } from 'react'
 
@@ -33,15 +34,19 @@ function App() {
       <Routes>
         {/* Rutas públicas */}
         <Route 
-          path="/login" 
-          element={!user ? <Login /> : <Navigate to="/ventas" />} 
-        />
-        <Route 
-          path="/registro" 
-          element={!user ? <Registro /> : <Navigate to="/ventas" />} 
-        />
+  path="/login" 
+  element={!user ? <Login /> : <Navigate to="/dashboard" />} 
+/>
+<Route 
+  path="/registro" 
+  element={!user ? <Registro /> : <Navigate to="/dashboard" />} 
+/>
         
         {/* Rutas protegidas */}
+        <Route 
+  path="/dashboard" 
+  element={user ? <Dashboard /> : <Navigate to="/login" />} 
+/>
         <Route 
           path="/ventas" 
           element={user ? <PuntoVenta /> : <Navigate to="/login" />} 
@@ -58,11 +63,12 @@ function App() {
   path="/fiados" 
   element={user ? <Fiados /> : <Navigate to="/login" />} 
 />
+
         {/* Ruta por defecto */}
         <Route 
-          path="/" 
-          element={<Navigate to={user ? "/ventas" : "/login"} />} 
-        />
+  path="/" 
+  element={<Navigate to={user ? "/dashboard" : "/login"} />} 
+/>
       </Routes>
     </BrowserRouter>
   )
