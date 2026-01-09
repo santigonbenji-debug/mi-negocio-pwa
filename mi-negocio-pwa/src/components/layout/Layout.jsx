@@ -27,11 +27,12 @@ export const Layout = ({ children }) => {
     navigate('/login')
   }
 
-  const menuItems = [
-    { path: '/ventas', label: '🛒 Ventas', icon: '🛒' },
-    { path: '/caja', label: '💰 Caja', icon: '💰' },
-    { path: '/inventario', label: '📦 Inventario', icon: '📦' }
-  ]
+ const menuItems = [
+  { path: '/ventas', label: '🛒 Ventas', icon: '🛒' },
+  { path: '/caja', label: '💰 Caja', icon: '💰' },
+  { path: '/inventario', label: '📦 Inventario', icon: '📦' },
+  { path: '/fiados', label: '📝 Fiados', icon: '📝' }
+]
 
   return (
     <div className="min-h-screen bg-gray-100">

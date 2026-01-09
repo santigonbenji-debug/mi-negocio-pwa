@@ -16,6 +16,7 @@ import { useVentasStore } from '../store/ventasStore'
 import { useProductosStore } from '../store/productosStore'
 import { useCajaStore } from '../store/cajaStore'
 import { useAuthStore } from '../store/authStore'
+import { useFiadosStore } from '../store/fiadosStore'
 import { Button } from '../components/common/Button'
 import { Card } from '../components/common/Card'
 import { Input } from '../components/common/Input'
@@ -29,6 +30,7 @@ import { Layout } from '../components/layout/Layout'
 export const PuntoVenta = () => {
   const { user, userData } = useAuthStore()
   const { cajaActual, verificarCajaAbierta } = useCajaStore()
+ const { clientes: clientesFiados, cargarClientes: cargarClientesFiados } = useFiadosStore()
   const { productos, cargarProductos } = useProductosStore()
   const {
     carrito,
@@ -55,6 +57,7 @@ export const PuntoVenta = () => {
   // Form Pago
   const [metodoPago, setMetodoPago] = useState('efectivo')
   const [clienteNombre, setClienteNombre] = useState('')
+  const [esClienteNuevo, setEsClienteNuevo] = useState(false)
   const [procesando, setProcesando] = useState(false)
 
   // Form Venta Rápida
@@ -69,6 +72,7 @@ export const PuntoVenta = () => {
       cargarProductos(userData.negocio_id)
       cargarVentasDelDia(userData.negocio_id)
       cargarTotalesDelDia(userData.negocio_id)
+      cargarClientesFiados(userData.negocio_id)
     }
   }, [userData])
 
@@ -135,7 +139,7 @@ export const PuntoVenta = () => {
       setModalPago(false)
       setMetodoPago('efectivo')
       setClienteNombre('')
-      
+      setEsClienteNuevo(false)
       // Recargar datos
       await verificarCajaAbierta(userData.negocio_id)
       await cargarProductos(userData.negocio_id)
@@ -457,14 +461,64 @@ export const PuntoVenta = () => {
           </div>
 
           {metodoPago === 'fiado' && (
-            <Input
-              label="Nombre del cliente *"
-              value={clienteNombre}
-              onChange={e => setClienteNombre(e.target.value)}
-              placeholder="Juan Pérez"
-              required
-            />
-          )}
+  <div className="space-y-3">
+    {clientesFiados.length > 0 && !esClienteNuevo ? (
+      <>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Seleccionar cliente *
+          </label>
+          <select
+            value={clienteNombre}
+            onChange={e => setClienteNombre(e.target.value)}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+            required
+          >
+            <option value="">-- Selecciona un cliente --</option>
+            {clientesFiados.map(cliente => (
+              <option key={cliente.id} value={cliente.cliente_nombre}>
+                {cliente.cliente_nombre} 
+                {cliente.deuda_total > 0 && ` (Debe: $${parseFloat(cliente.deuda_total).toFixed(2)})`}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setEsClienteNuevo(true)
+            setClienteNombre('')
+          }}
+          className="text-primary text-sm hover:underline"
+        >
+          + Agregar nuevo cliente
+        </button>
+      </>
+    ) : (
+      <>
+        <Input
+          label="Nombre del nuevo cliente *"
+          value={clienteNombre}
+          onChange={e => setClienteNombre(e.target.value)}
+          placeholder="Juan Pérez"
+          required
+        />
+        {clientesFiados.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setEsClienteNuevo(false)
+              setClienteNombre('')
+            }}
+            className="text-primary text-sm hover:underline"
+          >
+            ← Seleccionar cliente existente
+          </button>
+        )}
+      </>
+    )}
+  </div>
+)}
 
           <Button
             type="submit"
