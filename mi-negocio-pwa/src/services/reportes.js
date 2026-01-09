@@ -181,5 +181,159 @@ export const reportesService = {
       { metodo: 'Tarjeta', total: totales.tarjeta },
       { metodo: 'Fiado', total: totales.fiado }
     ]
+
+    
+  },
+
+
+// ============================================
+// REPORTES CON FILTROS POR FECHA
+// ============================================
+
+// Obtener cajas en un rango de fechas
+async cajasEnPeriodo(negocioId, fechaInicio, fechaFin) {
+  const { data, error } = await supabase
+    .from('cajas')
+    .select('*, usuarios(nombre)')
+    .eq('negocio_id', negocioId)
+    .gte('fecha_apertura', fechaInicio)
+    .lte('fecha_apertura', fechaFin)
+    .order('fecha_apertura', { ascending: false })
+
+  if (error) throw error
+  return data || []
+},
+
+// Obtener movimientos de una caja específica
+async movimientosDeCaja(cajaId) {
+  const { data, error } = await supabase
+    .from('movimientos_caja')
+    .select('*')
+    .eq('caja_id', cajaId)
+    .order('fecha', { ascending: false })
+
+  if (error) throw error
+  return data || []
+},
+
+// Obtener ventas en un rango de fechas
+async ventasEnPeriodo(negocioId, fechaInicio, fechaFin, metodoPago = null) {
+  let query = supabase
+    .from('ventas')
+    .select('*, usuarios(nombre)')
+    .eq('negocio_id', negocioId)
+    .gte('fecha', fechaInicio)
+    .lte('fecha', fechaFin)
+    .order('fecha', { ascending: false })
+
+  if (metodoPago) {
+    query = query.eq('metodo_pago', metodoPago)
   }
+
+  const { data, error } = await query
+
+  if (error) throw error
+  return data || []
+},
+
+// Totales de ventas en período
+async totalesEnPeriodo(negocioId, fechaInicio, fechaFin) {
+  const { data: ventas } = await supabase
+    .from('ventas')
+    .select('total, metodo_pago')
+    .eq('negocio_id', negocioId)
+    .gte('fecha', fechaInicio)
+    .lte('fecha', fechaFin)
+
+  const totales = {
+    total: 0,
+    efectivo: 0,
+    tarjeta: 0,
+    fiado: 0,
+    cantidad: ventas?.length || 0
+  }
+
+  ventas?.forEach(venta => {
+    const monto = parseFloat(venta.total)
+    totales.total += monto
+    
+    if (venta.metodo_pago === 'efectivo') totales.efectivo += monto
+    if (venta.metodo_pago === 'tarjeta') totales.tarjeta += monto
+    if (venta.metodo_pago === 'fiado') totales.fiado += monto
+  })
+
+  return totales
+},
+
+// Productos más vendidos en período
+async productosMasVendidosPeriodo(negocioId, fechaInicio, fechaFin, limite = 10) {
+  const { data } = await supabase
+    .from('ventas_items')
+    .select(`
+      cantidad,
+      producto_id,
+      productos (nombre),
+      ventas!inner (negocio_id, fecha)
+    `)
+    .eq('ventas.negocio_id', negocioId)
+    .gte('ventas.fecha', fechaInicio)
+    .lte('ventas.fecha', fechaFin)
+    .not('producto_id', 'is', null)
+
+  if (!data || data.length === 0) return []
+
+  const ventasPorProducto = {}
+  
+  for (const item of data) {
+    if (item.productos && item.productos.nombre) {
+      const nombre = item.productos.nombre
+      if (!ventasPorProducto[nombre]) {
+        ventasPorProducto[nombre] = 0
+      }
+      ventasPorProducto[nombre] += item.cantidad
+    }
+  }
+
+  return Object.entries(ventasPorProducto)
+    .map(([nombre, cantidad]) => ({ nombre, cantidad }))
+    .sort((a, b) => b.cantidad - a.cantidad)
+    .slice(0, limite)
+},
+
+// Ventas agrupadas por día en período
+async ventasPorDiaPeriodo(negocioId, fechaInicio, fechaFin) {
+  const { data: ventas, error } = await supabase
+    .from('ventas')
+    .select('total, fecha')
+    .eq('negocio_id', negocioId)
+    .gte('fecha', fechaInicio)
+    .lte('fecha', fechaFin)
+    .order('fecha', { ascending: true })
+
+  if (error) {
+    console.error('Error al cargar ventas por día:', error)
+    return []
+  }
+
+  // Agrupar por día
+  const ventasPorDia = {}
+  
+  ventas?.forEach(venta => {
+    const fechaVenta = venta.fecha.split('T')[0]
+    
+    if (!ventasPorDia[fechaVenta]) {
+      ventasPorDia[fechaVenta] = 0
+    }
+    ventasPorDia[fechaVenta] += parseFloat(venta.total)
+  })
+
+  return Object.entries(ventasPorDia)
+    .map(([fecha, total]) => ({
+      fecha,
+      total: Math.round(total * 100) / 100
+    }))
+    .sort((a, b) => a.fecha.localeCompare(b.fecha))
+}
+
+  
 }

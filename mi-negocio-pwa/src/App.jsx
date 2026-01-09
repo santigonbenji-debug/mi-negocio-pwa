@@ -6,6 +6,7 @@ import { Inventario } from './pages/Inventario'
 import { Caja } from './pages/Caja'
 import { PuntoVenta } from './pages/PuntoVenta'
 import { Fiados } from './pages/Fiados'
+import { Reportes } from './pages/Reportes'
 import { Dashboard } from './pages/Dashboard'
 import { useAuthStore } from './store/authStore'
 import { useEffect } from 'react'
@@ -62,6 +63,10 @@ function App() {
         <Route 
   path="/fiados" 
   element={user ? <Fiados /> : <Navigate to="/login" />} 
+/>
+<Route 
+  path="/reportes" 
+  element={user ? <Reportes /> : <Navigate to="/login" />} 
 />
 
         {/* Ruta por defecto */}

@@ -32,7 +32,8 @@ const menuItems = [
   { path: '/ventas', label: '🛒 Ventas', icon: '🛒' },
   { path: '/caja', label: '💰 Caja', icon: '💰' },
   { path: '/inventario', label: '📦 Inventario', icon: '📦' },
-  { path: '/fiados', label: '📝 Fiados', icon: '📝' }
+  { path: '/fiados', label: '📝 Fiados', icon: '📝' },
+  { path: '/reportes', label: '📈 Reportes', icon: '📈' }
 ]
 
   return (
