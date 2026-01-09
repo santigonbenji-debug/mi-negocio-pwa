@@ -17,6 +17,7 @@ import { Input } from '../components/common/Input'
 import { Modal } from '../components/common/Modal'
 import { Badge } from '../components/common/Badge'
 import toast from 'react-hot-toast'
+import { Layout } from '../components/layout/Layout'
 
 export const Inventario = () => {
   const { user, userData } = useAuthStore()
@@ -92,33 +93,8 @@ export const Inventario = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <div className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-4xl font-bold text-primary">📦 Inventario</h1>
-            <Button 
-              variant="danger" 
-              onClick={() => useAuthStore.getState().logout()}
-            >
-              Cerrar Sesión
-            </Button>
-          </div>
-          
-          <div className="flex gap-4">
-            <Input
-              placeholder="🔍 Buscar productos..."
-              value={busqueda}
-              onChange={e => handleBusqueda(e.target.value)}
-              className="flex-1"
-            />
-            <Button onClick={() => setModalAgregar(true)}>
-              + Agregar Producto
-            </Button>
-          </div>
-        </div>
-      </div>
+  <Layout>
+    <div className="max-w-7xl mx-auto px-4 py-8">
 
       {/* Contenido */}
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -257,5 +233,6 @@ export const Inventario = () => {
         </form>
       </Modal>
     </div>
+    </Layout>
   )
 }

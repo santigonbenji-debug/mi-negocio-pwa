@@ -4,6 +4,7 @@ import { Login } from './pages/Login'
 import { Registro } from './pages/Registro'
 import { Inventario } from './pages/Inventario'
 import { Caja } from './pages/Caja'
+import { PuntoVenta } from './pages/PuntoVenta'
 import { useAuthStore } from './store/authStore'
 import { useEffect } from 'react'
 
@@ -32,14 +33,18 @@ function App() {
         {/* Rutas públicas */}
         <Route 
           path="/login" 
-          element={!user ? <Login /> : <Navigate to="/caja" />} 
+          element={!user ? <Login /> : <Navigate to="/ventas" />} 
         />
         <Route 
           path="/registro" 
-          element={!user ? <Registro /> : <Navigate to="/caja" />} 
+          element={!user ? <Registro /> : <Navigate to="/ventas" />} 
         />
         
         {/* Rutas protegidas */}
+        <Route 
+          path="/ventas" 
+          element={user ? <PuntoVenta /> : <Navigate to="/login" />} 
+        />
         <Route 
           path="/caja" 
           element={user ? <Caja /> : <Navigate to="/login" />} 
@@ -52,7 +57,7 @@ function App() {
         {/* Ruta por defecto */}
         <Route 
           path="/" 
-          element={<Navigate to={user ? "/caja" : "/login"} />} 
+          element={<Navigate to={user ? "/ventas" : "/login"} />} 
         />
       </Routes>
     </BrowserRouter>

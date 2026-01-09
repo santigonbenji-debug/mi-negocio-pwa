@@ -22,6 +22,7 @@ import { Badge } from '../components/common/Badge'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { Layout } from '../components/layout/Layout'
 
 export const Caja = () => {
   const { user, userData } = useAuthStore()
@@ -129,26 +130,8 @@ export const Caja = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <div className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-4xl font-bold text-primary">💰 Caja</h1>
-            <div className="flex gap-3">
-              <Button
-                variant="secondary"
-                onClick={() => window.location.href = '/inventario'}
-              >
-                📦 Inventario
-              </Button>
-              <Button variant="danger" onClick={() => useAuthStore.getState().logout()}>
-                Cerrar Sesión
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+  <Layout>
+    <div className="max-w-7xl mx-auto px-4 py-8">
 
       {/* Contenido */}
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -424,5 +407,6 @@ export const Caja = () => {
         </form>
       </Modal>
     </div>
+    </Layout>
   )
 }
