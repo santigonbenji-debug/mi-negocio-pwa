@@ -23,9 +23,10 @@ import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Layout } from '../components/layout/Layout'
+import { DetalleVentaModal } from '../components/ventas/DetalleVentaModal'
 
 export const Caja = () => {
-  const { user, userData } = useAuthStore()
+  const { user } = useAuthStore()
   const {
     cajaActual,
     movimientos,
@@ -42,9 +43,11 @@ export const Caja = () => {
   const [modalAbrir, setModalAbrir] = useState(false)
   const [modalMovimiento, setModalMovimiento] = useState(false)
   const [modalCerrar, setModalCerrar] = useState(false)
-  const [mostrarHistorial, setMostrarHistorial] = useState(false)
+ const [mostrarHistorial, setMostrarHistorial] = useState(false)
+const [modalDetalleVenta, setModalDetalleVenta] = useState(false)
+const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
 
-  // Form Abrir Caja
+// Form Abrir Caja
   const [montoInicial, setMontoInicial] = useState('')
 
   // Form Movimiento
@@ -58,17 +61,17 @@ export const Caja = () => {
 
   // Cargar caja al montar
   useEffect(() => {
-    if (userData?.negocio_id) {
-      verificarCajaAbierta(userData.negocio_id)
-      cargarHistorial(userData.negocio_id)
-    }
-  }, [userData])
+    if (user?.negocio_id) {
+  verificarCajaAbierta(user.negocio_id)
+  cargarHistorial(user.negocio_id)
+}
+  }, [user])
 
   // Abrir caja
   const handleAbrirCaja = async (e) => {
     e.preventDefault()
     try {
-      await abrirCaja(userData.negocio_id, user.id, parseFloat(montoInicial))
+     await abrirCaja(user.negocio_id, user.id, parseFloat(montoInicial))
       toast.success('✅ Caja abierta')
       setModalAbrir(false)
       setMontoInicial('')
@@ -113,10 +116,16 @@ export const Caja = () => {
       setModalCerrar(false)
       setMontoReal('')
       setObservaciones('')
-      cargarHistorial(userData.negocio_id)
+      cargarHistorial(user.negocio_id)
     } catch (error) {
       toast.error(error.message)
-    }
+ }
+  }
+
+  // Ver detalle de venta
+  const handleVerDetalleVenta = (ventaId) => {
+    setVentaSeleccionada(ventaId)
+    setModalDetalleVenta(true)
   }
 
   // Calcular totales
@@ -253,33 +262,41 @@ export const Caja = () => {
                   <p className="text-center text-gray-500 py-8">
                     No hay movimientos registrados
                   </p>
-                ) : (
-                  <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                    {movimientos.map(mov => (
-                      <div
-                        key={mov.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-800">
-                            {mov.concepto}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {format(new Date(mov.fecha), "HH:mm", { locale: es })}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant={
-                            mov.tipo === 'ingreso' ? 'success' :
-                            mov.tipo === 'egreso' ? 'warning' : 'danger'
-                          }>
-                            {mov.tipo === 'ingreso' ? '+' : '-'}${parseFloat(mov.monto).toFixed(2)}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+               ) : (
+  <div className="space-y-2 max-h-[600px] overflow-y-auto">
+    {movimientos.map(mov => (
+      <div
+        key={mov.id}
+        className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg ${
+          mov.venta_id ? 'hover:bg-gray-100 cursor-pointer transition-colors' : ''
+        }`}
+        onClick={() => mov.venta_id && handleVerDetalleVenta(mov.venta_id)}
+      >
+        <div className="flex-1">
+          <p className="font-semibold text-gray-800">
+            {mov.concepto}
+          </p>
+          <p className="text-xs text-gray-500">
+            {format(new Date(mov.fecha), "HH:mm", { locale: es })}
+          </p>
+          {mov.venta_id && (
+            <p className="text-xs text-primary font-semibold mt-1">
+              Click para ver detalle →
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={
+            mov.tipo === 'ingreso' ? 'success' :
+            mov.tipo === 'egreso' ? 'warning' : 'danger'
+          }>
+            {mov.tipo === 'ingreso' ? '+' : '-'}${parseFloat(mov.monto).toFixed(2)}
+          </Badge>
+        </div>
+      </div>
+    ))}
+  </div>
+)}
               </Card>
             </div>
           </div>
@@ -406,6 +423,16 @@ export const Caja = () => {
           </Button>
         </form>
       </Modal>
+
+      {/* Modal Detalle Venta */}
+      <DetalleVentaModal
+        isOpen={modalDetalleVenta}
+        onClose={() => {
+          setModalDetalleVenta(false)
+          setVentaSeleccionada(null)
+        }}
+        ventaId={ventaSeleccionada}
+      />
     </div>
     </Layout>
   )
