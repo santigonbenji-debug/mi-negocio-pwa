@@ -24,7 +24,8 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Layout } from '../components/layout/Layout'
 import { DetalleVentaModal } from '../components/ventas/DetalleVentaModal'
-
+import { exportarCaja } from '../utils/exportCaja'
+import { cajaService } from '../services/caja'
 export const Caja = () => {
   const { user } = useAuthStore()
   const {
@@ -127,7 +128,26 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
     setVentaSeleccionada(ventaId)
     setModalDetalleVenta(true)
   }
-
+// Exportar caja
+  const handleExportarCaja = async (caja) => {
+    try {
+      toast.loading('Generando Excel...')
+      
+      // Obtener ventas y movimientos de esta caja
+      const ventas = await cajaService.obtenerVentasDeCaja(caja.id)
+      const movimientos = await cajaService.obtenerMovimientos(caja.id)
+      
+      // Exportar
+      await exportarCaja(caja, ventas, movimientos)
+      
+      toast.dismiss()
+      toast.success('✅ Caja exportada correctamente')
+    } catch (error) {
+      toast.dismiss()
+      toast.error('Error al exportar caja')
+      console.error(error)
+    }
+  }
   // Calcular totales
   const totales = {
     ingresos: movimientos
@@ -176,7 +196,7 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
                   {historial.slice(0, 5).map(caja => (
                     <Card key={caja.id} padding="p-4">
                       <div className="flex items-center justify-between">
-                        <div>
+                        <div className="flex-1">
                           <p className="font-semibold text-gray-800">
                             {format(new Date(caja.fecha_apertura), "dd/MM/yyyy HH:mm", { locale: es })}
                           </p>
@@ -193,6 +213,15 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
                               {caja.diferencia > 0 ? '+' : ''}{caja.diferencia.toFixed(2)}
                             </Badge>
                           )}
+                        </div>
+                        <div className="ml-4">
+                          <Button
+                            variant="secondary"
+                            className="text-sm py-2 px-4"
+                            onClick={() => handleExportarCaja(caja)}
+                          >
+                            📥 Exportar
+                          </Button>
                         </div>
                       </div>
                     </Card>

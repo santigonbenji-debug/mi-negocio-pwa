@@ -145,8 +145,7 @@ export const cajaService = {
     if (error) throw error
     return data || []
   },
-
-  // Obtener historial de cajas
+// Obtener historial de cajas
   async obtenerHistorial(negocioId, limite = 10) {
     const { data, error } = await supabase
       .from('cajas')
@@ -154,6 +153,18 @@ export const cajaService = {
       .eq('negocio_id', negocioId)
       .order('fecha_apertura', { ascending: false })
       .limit(limite)
+    
+    if (error) throw error
+    return data || []
+  },
+
+  // Obtener ventas de una caja específica
+  async obtenerVentasDeCaja(cajaId) {
+    const { data, error } = await supabase
+      .from('ventas')
+      .select('*, usuarios(nombre)')
+      .eq('caja_id', cajaId)
+      .order('fecha', { ascending: true })
     
     if (error) throw error
     return data || []
