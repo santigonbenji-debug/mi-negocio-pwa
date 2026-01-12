@@ -8,7 +8,7 @@
 // 3. Análisis - Gráficos y tendencias
 // ============================================
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useReportesStore } from '../store/reportesStore'
 import { useAuthStore } from '../store/authStore'
 import { Layout } from '../components/layout/Layout'
@@ -19,10 +19,11 @@ import { Modal } from '../components/common/Modal'
 import { DateFilters } from '../components/common/DateFilters'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import { format } from 'date-fns'
+import { exportarVentas } from '../utils/exportVentas'
 import { es } from 'date-fns/locale'
-
+import { DetalleVentaModal } from '../components/ventas/DetalleVentaModal'
 export const Reportes = () => {
-  const { userData } = useAuthStore()
+  const { user } = useAuthStore()
   const {
     fechaInicio,
     fechaFin,
@@ -48,31 +49,49 @@ export const Reportes = () => {
     cargarAnalisis
   } = useReportesStore()
 
+//✅ AGREGAR ESTOS ESTADOS:
+const [modalDetalle, setModalDetalle] = useState(false)
+const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
+
+
   // Cargar datos al cambiar pestaña o fechas
   useEffect(() => {
-    if (!userData?.negocio_id) return
+  if (!user?.negocio_id) return
 
-    if (pestanaActiva === 'cajas') {
-      cargarCajas(userData.negocio_id)
-    } else if (pestanaActiva === 'ventas') {
-      cargarVentas(userData.negocio_id)
-    } else if (pestanaActiva === 'analisis') {
-      cargarAnalisis(userData.negocio_id)
-    }
-  }, [userData, pestanaActiva])
+  if (pestanaActiva === 'cajas') {
+    cargarCajas(user.negocio_id)
+  } else if (pestanaActiva === 'ventas') {
+    cargarVentas(user.negocio_id)
+  } else if (pestanaActiva === 'analisis') {
+    cargarAnalisis(user.negocio_id)
+  }
+}, [user, pestanaActiva])
 
   const handleAplicarFiltros = () => {
-    if (!userData?.negocio_id) return
+  if (!user?.negocio_id) return
 
-    if (pestanaActiva === 'cajas') {
-      cargarCajas(userData.negocio_id)
-    } else if (pestanaActiva === 'ventas') {
-      cargarVentas(userData.negocio_id)
-    } else if (pestanaActiva === 'analisis') {
-      cargarAnalisis(userData.negocio_id)
-    }
+  if (pestanaActiva === 'cajas') {
+    cargarCajas(user.negocio_id)
+  } else if (pestanaActiva === 'ventas') {
+    cargarVentas(user.negocio_id)
+  } else if (pestanaActiva === 'analisis') {
+    cargarAnalisis(user.negocio_id)
   }
-
+}
+const handleExportarVentas = () => {
+  try {
+    exportarVentas(ventas, fechaInicio, fechaFin)
+    toast.success('✅ Ventas exportadas correctamente')
+  } catch (error) {
+    toast.error('Error al exportar ventas')
+    console.error(error)
+  }
+}
+//Ver detalle de venta
+const handleVerDetalle = (ventaId) => {
+  setVentaSeleccionada(ventaId)
+  setModalDetalle(true)
+}
   const pestanas = [
     { id: 'cajas', label: '💰 Cajas', icono: '💰' },
     { id: 'ventas', label: '🛒 Ventas', icono: '🛒' },
@@ -101,7 +120,13 @@ export const Reportes = () => {
           onFechasPersonalizadas={setFechasPersonalizadas}
           onAplicar={handleAplicarFiltros}
         />
-
+<Button 
+  variant="secondary"
+  onClick={handleExportarVentas}
+  disabled={ventas.length === 0}
+>
+  📥 Exportar Excel
+</Button>
         {/* Pestañas */}
         <div className="flex space-x-2 mb-6 border-b-2 border-gray-200">
           {pestanas.map(pestana => (
@@ -201,7 +226,7 @@ export const Reportes = () => {
                     value={filtroMetodoPago || ''}
                     onChange={e => {
                       setFiltroMetodoPago(e.target.value || null)
-                      setTimeout(() => cargarVentas(userData.negocio_id), 100)
+                      setTimeout(() => cargarVentas(user?.negocio_id), 100)
                     }}
                     className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-primary outline-none"
                   >
@@ -236,43 +261,53 @@ export const Reportes = () => {
 
                 {/* Lista de ventas */}
                 {ventas.length === 0 ? (
-                  <Card className="text-center py-12">
-                    <p className="text-gray-500">No hay ventas en este período</p>
-                  </Card>
-                ) : (
-                  <div className="space-y-2">
-                    {ventas.map(venta => (
-                      <Card key={venta.id} padding="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-semibold text-gray-800">
-                              {format(new Date(venta.fecha), "dd/MM/yyyy HH:mm", { locale: es })}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              Vendedor: {venta.usuarios?.nombre || 'N/A'}
-                            </p>
-                            {venta.cliente_nombre && (
-                              <p className="text-sm text-gray-600">
-                                Cliente: {venta.cliente_nombre}
-                              </p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xl font-bold text-primary">
-                              ${parseFloat(venta.total).toFixed(2)}
-                            </p>
-                            <Badge variant={
-                              venta.metodo_pago === 'efectivo' ? 'success' :
-                              venta.metodo_pago === 'tarjeta' ? 'default' : 'warning'
-                            }>
-                              {venta.metodo_pago}
-                            </Badge>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+  <Card className="text-center py-12">
+    <p className="text-gray-500">No hay ventas en este período</p>
+  </Card>
+) : (
+  <div className="space-y-2">
+    {ventas.map(venta => (
+      <Card 
+        key={venta.id} 
+        padding="p-4"
+        className="hover:shadow-lg transition-all cursor-pointer hover:scale-[1.01]"
+        onClick={() => handleVerDetalle(venta.id)}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <p className="font-semibold text-gray-800">
+              {format(new Date(venta.fecha), "dd/MM/yyyy HH:mm", { locale: es })}
+            </p>
+            <p className="text-sm text-gray-600">
+              Vendedor: {venta.usuarios?.nombre || 'N/A'}
+            </p>
+            {venta.cliente_nombre && (
+              <p className="text-sm text-gray-600">
+                Cliente: {venta.cliente_nombre}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="text-xl font-bold text-primary">
+                ${parseFloat(venta.total).toFixed(2)}
+              </p>
+              <Badge variant={
+                venta.metodo_pago === 'efectivo' ? 'success' :
+                venta.metodo_pago === 'tarjeta' ? 'default' : 'warning'
+              }>
+                {venta.metodo_pago}
+              </Badge>
+            </div>
+            <div className="text-primary font-semibold text-sm">
+              Ver →
+            </div>
+          </div>
+        </div>
+      </Card>
+    ))}
+  </div>
+)}
               </div>
             )}
 
@@ -425,6 +460,16 @@ export const Reportes = () => {
             </div>
           )}
         </Modal>
+
+        {/* Modal Detalle Venta */}
+        <DetalleVentaModal
+          isOpen={modalDetalle}
+          onClose={() => {
+            setModalDetalle(false)
+            setVentaSeleccionada(null)
+          }}
+          ventaId={ventaSeleccionada}
+        />
       </div>
     </Layout>
   )
