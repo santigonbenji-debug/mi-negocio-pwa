@@ -1,15 +1,3 @@
-// ============================================
-// ¿QUÉ HACE ESTO?
-// Página completa de gestión de fiados
-//
-// FUNCIONALIDADES:
-// - Ver lista de clientes con deuda
-// - Ver estadísticas generales
-// - Ver detalle de cliente (historial)
-// - Registrar pagos
-// - Agregar nuevos clientes
-// ============================================
-
 import React, { useState, useEffect } from 'react'
 import { useFiadosStore } from '../store/fiadosStore'
 import { useAuthStore } from '../store/authStore'
@@ -24,6 +12,7 @@ import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { DetalleVentaModal } from '../components/ventas/DetalleVentaModal'
+
 export const Fiados = () => {
   const { user } = useAuthStore()
   const {
@@ -40,49 +29,42 @@ export const Fiados = () => {
     limpiarSeleccion
   } = useFiadosStore()
 
-  // Modales
   const [modalDetalle, setModalDetalle] = useState(false)
   const [modalPago, setModalPago] = useState(false)
   const [modalNuevo, setModalNuevo] = useState(false)
-//✅ AGREGAR ESTOS ESTADOS:
-const [modalDetalleVenta, setModalDetalleVenta] = useState(false)
-const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
-  // Form Pago
+  const [modalDetalleVenta, setModalDetalleVenta] = useState(false)
+  const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
+
   const [montoPago, setMontoPago] = useState('')
   const [descripcionPago, setDescripcionPago] = useState('')
 
-  // Form Nuevo Cliente
   const [nombreNuevo, setNombreNuevo] = useState('')
   const [telefonoNuevo, setTelefonoNuevo] = useState('')
 
-  // Cargar datos al montar
   useEffect(() => {
-   if (user?.negocio_id) {
-  cargarClientes(user.negocio_id)
-  cargarEstadisticas(user.negocio_id)
-}
+    if (user?.negocio_id) {
+      cargarClientes(user.negocio_id)
+      cargarEstadisticas(user.negocio_id)
+    }
   }, [user])
 
-  // Ver detalle de cliente
   const handleVerDetalle = async (cliente) => {
     await seleccionarCliente(cliente.id)
     setModalDetalle(true)
   }
 
-  // Abrir modal de pago
   const handleAbrirPago = () => {
     setModalDetalle(false)
     setModalPago(true)
   }
 
-  // Registrar pago
   const handleRegistrarPago = async (e) => {
     e.preventDefault()
-    
+
     if (!clienteActual) return
 
     const monto = parseFloat(montoPago)
-    
+
     if (monto <= 0) {
       toast.error('El monto debe ser mayor a 0')
       return
@@ -99,11 +81,9 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
       setModalPago(false)
       setMontoPago('')
       setDescripcionPago('')
-      
-      // Recargar estadísticas
+
       await cargarEstadisticas(user.negocio_id)
-      
-      // Si pagó todo, cerrar modal
+
       if (monto === clienteActual.deuda_total) {
         setModalDetalle(false)
       } else {
@@ -114,12 +94,11 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
     }
   }
 
-  // Crear nuevo cliente
   const handleCrearCliente = async (e) => {
     e.preventDefault()
-    
+
     try {
-      await crearCliente(userData.negocio_id, nombreNuevo, telefonoNuevo || null)
+      await crearCliente(user.negocio_id, nombreNuevo, telefonoNuevo || null)
       toast.success('✅ Cliente agregado')
       setModalNuevo(false)
       setNombreNuevo('')
@@ -128,12 +107,13 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
       toast.error(error.message)
     }
   }
-//Ver detalle de venta desde movimiento
-const handleVerDetalleVenta = (ventaId) => {
-  setVentaSeleccionada(ventaId)
-  setModalDetalleVenta(true)
-}
-const handleExportar = () => {
+
+  const handleVerDetalleVenta = (ventaId) => {
+    setVentaSeleccionada(ventaId)
+    setModalDetalleVenta(true)
+  }
+
+  const handleExportar = () => {
     try {
       exportarFiados(clientes)
       toast.success('✅ Fiados exportados correctamente')
@@ -142,28 +122,27 @@ const handleExportar = () => {
       console.error(error)
     }
   }
+
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header con estadísticas */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-4xl font-bold text-primary">📝 Fiados</h1>
+            <h1 className="text-4xl font-bold text-primary">📒 Fiados</h1>
             <div className="flex gap-3">
-  <Button 
-    variant="secondary"
-    onClick={handleExportar}
-    disabled={clientes.length === 0}
-  >
-    📥 Exportar Excel
-  </Button>
-  <Button onClick={() => setModalAgregar(true)}>
-    + Agregar Cliente
-  </Button>
-</div>
+              <Button
+                variant="secondary"
+                onClick={handleExportar}
+                disabled={clientes.length === 0}
+              >
+                📊 Exportar Excel
+              </Button>
+              <Button onClick={() => setModalNuevo(true)}>
+                + Agregar Cliente
+              </Button>
+            </div>
           </div>
 
-          {/* Estadísticas */}
           {estadisticas && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card padding="p-4">
@@ -185,7 +164,7 @@ const handleExportar = () => {
                 </p>
               </Card>
               <Card padding="p-4">
-                <p className="text-sm text-gray-600 mb-1">Deuda Más Alta</p>
+                <p className="text-sm text-gray-600 mb-1">Deuda Mas Alta</p>
                 <p className="text-2xl font-bold text-warning">
                   ${estadisticas.deudaMasAlta.toFixed(2)}
                 </p>
@@ -194,19 +173,18 @@ const handleExportar = () => {
           )}
         </div>
 
-        {/* Lista de clientes */}
         {cargando ? (
           <Card className="text-center py-12">
             <p className="text-xl text-gray-600">Cargando clientes...</p>
           </Card>
         ) : clientes.length === 0 ? (
           <Card className="text-center py-12">
-            <div className="text-6xl mb-4">📝</div>
+            <div className="text-6xl mb-4">📒</div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
               No hay clientes fiados
             </h2>
             <p className="text-gray-600 mb-6">
-              Los clientes fiados aparecerán aquí cuando realices ventas con el método "Fiado"
+              Los clientes fiados apareceran aqui cuando realices ventas con el metodo "Fiado"
             </p>
             <Button onClick={() => setModalNuevo(true)}>
               + Agregar Primer Cliente
@@ -217,7 +195,7 @@ const handleExportar = () => {
             {clientes.map(cliente => {
               const deuda = parseFloat(cliente.deuda_total)
               const tieneDeuda = deuda > 0
-              
+
               return (
                 <Card
                   key={cliente.id}
@@ -238,7 +216,7 @@ const handleExportar = () => {
                     {tieneDeuda ? (
                       <Badge variant="danger">Debe</Badge>
                     ) : (
-                      <Badge variant="success">Al día</Badge>
+                      <Badge variant="success">Al dia</Badge>
                     )}
                   </div>
 
@@ -261,7 +239,6 @@ const handleExportar = () => {
         )}
       </div>
 
-      {/* Modal Detalle Cliente */}
       <Modal
         isOpen={modalDetalle}
         onClose={() => {
@@ -273,7 +250,6 @@ const handleExportar = () => {
       >
         {clienteActual && (
           <div className="space-y-4">
-            {/* Info del cliente */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <div>
@@ -284,7 +260,7 @@ const handleExportar = () => {
                 </div>
                 {clienteActual.telefono && (
                   <div className="text-right">
-                    <p className="text-sm text-gray-600">Teléfono:</p>
+                    <p className="text-sm text-gray-600">Telefono:</p>
                     <p className="font-semibold">{clienteActual.telefono}</p>
                   </div>
                 )}
@@ -300,54 +276,51 @@ const handleExportar = () => {
               )}
             </div>
 
-            {/* Historial de movimientos */}
-           {/* Historial de movimientos */}
-<div>
-  <h3 className="font-bold text-lg mb-3">
-    Historial ({movimientos.length} movimientos)
-  </h3>
-  {movimientos.length === 0 ? (
-    <p className="text-center text-gray-500 py-8">
-      No hay movimientos registrados
-    </p>
-  ) : (
-    <div className="space-y-2 max-h-96 overflow-y-auto">
-      {movimientos.map(mov => (
-        <div
-          key={mov.id}
-          className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg ${
-            mov.venta_id ? 'hover:bg-gray-100 cursor-pointer' : ''
-          }`}
-          onClick={() => mov.venta_id && handleVerDetalleVenta(mov.venta_id)}
-        >
-          <div className="flex-1">
-            <p className="font-semibold text-gray-800">
-              {mov.descripcion}
-            </p>
-            <p className="text-xs text-gray-500">
-              {format(new Date(mov.fecha), "dd/MM/yyyy HH:mm", { locale: es })}
-            </p>
-            {mov.venta_id && (
-              <p className="text-xs text-primary font-semibold mt-1">
-                Click para ver detalle →
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={mov.tipo === 'compra' ? 'danger' : 'success'}>
-              {mov.tipo === 'compra' ? '+' : '-'}${parseFloat(mov.monto).toFixed(2)}
-            </Badge>
-          </div>
-        </div>
-      ))}
-    </div>
-  )}
-</div>
+            <div>
+              <h3 className="font-bold text-lg mb-3">
+                Historial ({movimientos.length} movimientos)
+              </h3>
+              {movimientos.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">
+                  No hay movimientos registrados
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {movimientos.map(mov => (
+                    <div
+                      key={mov.id}
+                      className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg ${
+                        mov.venta_id ? 'hover:bg-gray-100 cursor-pointer' : ''
+                      }`}
+                      onClick={() => mov.venta_id && handleVerDetalleVenta(mov.venta_id)}
+                    >
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-800">
+                          {mov.descripcion}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {format(new Date(mov.fecha), "dd/MM/yyyy HH:mm", { locale: es })}
+                        </p>
+                        {mov.venta_id && (
+                          <p className="text-xs text-primary font-semibold mt-1">
+                            Click para ver detalle →
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={mov.tipo === 'compra' ? 'danger' : 'success'}>
+                          {mov.tipo === 'compra' ? '+' : '-'}${parseFloat(mov.monto).toFixed(2)}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </Modal>
 
-      {/* Modal Registrar Pago */}
       <Modal
         isOpen={modalPago}
         onClose={() => {
@@ -376,7 +349,7 @@ const handleExportar = () => {
             />
 
             <Input
-              label="Descripción (opcional)"
+              label="Descripcion (opcional)"
               value={descripcionPago}
               onChange={e => setDescripcionPago(e.target.value)}
               placeholder="Ej: Pago parcial"
@@ -402,7 +375,6 @@ const handleExportar = () => {
         )}
       </Modal>
 
-      {/* Modal Nuevo Cliente */}
       <Modal
         isOpen={modalNuevo}
         onClose={() => setModalNuevo(false)}
@@ -410,19 +382,19 @@ const handleExportar = () => {
       >
         <form onSubmit={handleCrearCliente} className="space-y-4">
           <p className="text-sm text-gray-600">
-            Nota: El cliente se agregará sin deuda inicial. La deuda se registrará automáticamente cuando realices ventas con el método "Fiado".
+            Nota: El cliente se agregara sin deuda inicial. La deuda se registrara automaticamente cuando realices ventas con el metodo "Fiado".
           </p>
-          
+
           <Input
             label="Nombre del cliente *"
             value={nombreNuevo}
             onChange={e => setNombreNuevo(e.target.value)}
-            placeholder="Juan Pérez"
+            placeholder="Juan Perez"
             required
           />
 
           <Input
-            label="Teléfono (opcional)"
+            label="Telefono (opcional)"
             type="tel"
             value={telefonoNuevo}
             onChange={e => setTelefonoNuevo(e.target.value)}
@@ -433,9 +405,8 @@ const handleExportar = () => {
             Agregar Cliente
           </Button>
         </form>
-       </Modal>
+      </Modal>
 
-      {/* Modal Detalle Venta */}
       <DetalleVentaModal
         isOpen={modalDetalleVenta}
         onClose={() => {
