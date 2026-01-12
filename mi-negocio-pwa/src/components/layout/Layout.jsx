@@ -16,12 +16,12 @@ import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { Button } from '../common/Button'
-
+import { usePermisos } from '../../hooks/usePermisos'
 export const Layout = ({ children }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, userData, logout } = useAuthStore()
-
+const { esAdmin } = usePermisos()
   const handleLogout = async () => {
     await logout()
     navigate('/login')
@@ -33,7 +33,9 @@ const menuItems = [
   { path: '/caja', label: '💰 Caja', icon: '💰' },
   { path: '/inventario', label: '📦 Inventario', icon: '📦' },
   { path: '/fiados', label: '📝 Fiados', icon: '📝' },
-  { path: '/reportes', label: '📈 Reportes', icon: '📈' }
+  { path: '/reportes', label: '📈 Reportes', icon: '📈', adminOnly: true },
+  { path: '/usuarios', label: '👥 Usuarios', icon: '👥', adminOnly: true },
+ { path: '/configuracion', label: '⚙️', icon: '⚙️', adminOnly: true },
 ]
 
   return (
@@ -48,12 +50,14 @@ const menuItems = [
                 🏪 Mi Negocio
               </h1>
 
-              {/* Menu Items - Desktop */}
-              <div className="hidden md:flex space-x-1">
-                {menuItems.map(item => {
-                  const isActive = location.pathname === item.path
-                  return (
-                    <button
+             {/* Menu Items - Desktop */}
+<div className="hidden md:flex space-x-1">
+  {menuItems
+    .filter(item => !item.adminOnly || esAdmin)
+    .map(item => {
+      const isActive = location.pathname === item.path
+      return (
+        <button
                       key={item.path}
                       onClick={() => navigate(item.path)}
                       className={`
@@ -88,11 +92,13 @@ const menuItems = [
           </div>
 
           {/* Menu Items - Mobile */}
-          <div className="md:hidden pb-3 flex space-x-1 overflow-x-auto">
-            {menuItems.map(item => {
-              const isActive = location.pathname === item.path
-              return (
-                <button
+<div className="md:hidden pb-3 flex space-x-1 overflow-x-auto">
+  {menuItems
+    .filter(item => !item.adminOnly || esAdmin)
+    .map(item => {
+      const isActive = location.pathname === item.path
+      return (
+        <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
                   className={`
