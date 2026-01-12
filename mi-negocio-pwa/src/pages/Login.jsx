@@ -1,12 +1,3 @@
-// ============================================
-// ¿QUÉ HACE ESTO?
-// Página para iniciar sesión
-//
-// ANALOGÍA:
-// Como la puerta de entrada a tu negocio - pones
-// tu llave (email y contraseña) y se abre
-// ============================================
-
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
@@ -43,9 +34,9 @@ export const Login = () => {
           <h1 className="text-4xl font-bold text-primary mb-2">
             🏪 Mi Negocio
           </h1>
-          <p className="text-gray-600">Inicia sesión para continuar</p>
+          <p className="text-gray-600">Inicia sesion para continuar</p>
         </div>
-        
+
         <form onSubmit={handleLogin} className="space-y-4">
           <Input
             label="Email"
@@ -64,17 +55,17 @@ export const Login = () => {
             required
           />
           <Button type="submit" className="w-full" disabled={cargando}>
-            {cargando ? 'Ingresando...' : 'Iniciar Sesión'}
+            {cargando ? 'Ingresando...' : 'Iniciar Sesion'}
           </Button>
         </form>
-        
+
         <p className="text-center mt-6 text-gray-600">
           ¿No tienes cuenta?{' '}
           <button
             onClick={() => navigate('/registro')}
             className="text-primary font-semibold hover:underline"
           >
-            Regístrate aquí
+            Registrate aqui
           </button>
         </p>
       </Card>

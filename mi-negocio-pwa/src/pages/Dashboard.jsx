@@ -23,7 +23,7 @@ import { es } from 'date-fns/locale'
 
 export const Dashboard = () => {
   const navigate = useNavigate()
-  const { userData } = useAuthStore()
+ const { user } = useAuthStore()
   const {
     resumen,
     ventasPorDia,
@@ -35,10 +35,10 @@ export const Dashboard = () => {
 
   // Cargar datos al montar
   useEffect(() => {
-    if (userData?.negocio_id) {
-      cargarDatos(userData.negocio_id)
-    }
-  }, [userData])
+    if (user?.negocio_id) {
+  cargarDatos(user.negocio_id)
+}
+  }, [user])
 
   
 
@@ -170,8 +170,7 @@ export const Dashboard = () => {
                 </div>
               </div>
             )}
-
-    {/* Gráfico de Ventas por Día */}
+{/* Gráfico de Ventas por Día */}
 <Card>
   <h2 className="text-2xl font-bold text-gray-800 mb-6">
     Ventas - Últimos 7 Días
@@ -206,14 +205,14 @@ export const Dashboard = () => {
     </div>
   )}
 </Card>
+    
+  
 
             {/* Grid de 2 columnas */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
              
-             
-             
-             
-              {/* Productos Más Vendidos */}
+           
+             {/* Productos Más Vendidos */}
 <Card>
   <h2 className="text-2xl font-bold text-gray-800 mb-6">
     Productos Más Vendidos
@@ -235,6 +234,9 @@ export const Dashboard = () => {
     </div>
   )}
 </Card>
+
+             
+              
 
               {/* Ventas por Método de Pago */}
               {ventasPorMetodoPago.length > 0 && (

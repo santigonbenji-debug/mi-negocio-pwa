@@ -22,17 +22,23 @@ export const useProductosStore = create((set, get) => ({
   busqueda: '',
 
   // Cargar todos los productos
-  cargarProductos: async (negocioId) => {
-    set({ cargando: true })
-    try {
-      const productos = await productosService.obtenerTodos(negocioId)
-      set({ productos, cargando: false })
-    } catch (error) {
-      console.error('Error al cargar productos:', error)
-      set({ cargando: false })
-    }
-  },
-
+ cargarProductos: async (negocioId) => {
+  // Validar que existe negocio_id
+  if (!negocioId) {
+    console.warn('No hay negocio_id disponible')
+    set({ productos: [], cargando: false })
+    return
+  }
+  
+  set({ cargando: true })
+  try {
+    const productos = await productosService.obtenerTodos(negocioId)
+    set({ productos, cargando: false })
+  } catch (error) {
+    console.error('Error al cargar productos:', error)
+    set({ cargando: false })
+  }
+},
   // Buscar productos
   buscarProductos: async (negocioId, termino) => {
     set({ busqueda: termino, cargando: true })

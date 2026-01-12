@@ -113,6 +113,31 @@ export const fiadosService = {
     
     if (error) throw error
   },
+ // Obtener movimientos de un cliente CON DETALLES DE VENTA
+async obtenerMovimientos(fiadoId) {
+  const { data, error } = await supabase
+    .from('fiados_movimientos')
+    .select(`
+      *,
+      ventas (
+        id,
+        total,
+        tipo,
+        fecha,
+        ventas_items (
+          cantidad,
+          precio_unitario,
+          descripcion_momento_venta,
+          productos (nombre)
+        )
+      )
+    `)
+    .eq('fiado_id', fiadoId)
+    .order('fecha', { ascending: false })
+  
+  if (error) throw error
+  return data || []
+},
 
   // Obtener estadísticas
   async obtenerEstadisticas(negocioId) {
@@ -128,5 +153,9 @@ export const fiadosService = {
       totalClientes: clientes.length,
       deudaMasAlta
     }
+
+    
   }
+
+  
 }

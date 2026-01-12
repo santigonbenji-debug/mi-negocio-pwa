@@ -74,51 +74,52 @@ export const ventasService = {
     )
 
     // 4. Si es fiado, crear/actualizar cliente
-    if (metodoPago === 'fiado' && clienteNombre) {
-      await this.registrarFiado(negocioId, clienteNombre, total)
-    }
+if (metodoPago === 'fiado' && clienteNombre) {
+  await this.registrarFiado(negocioId, clienteNombre, total, venta.id)
+}
 
     return venta
   },
 
   // Registrar fiado
-  async registrarFiado(negocioId, clienteNombre, monto) {
-    // Buscar cliente existente
-    const { data: clienteExistente } = await supabase
+async registrarFiado(negocioId, clienteNombre, monto, ventaId) {
+  // Buscar cliente existente
+  const { data: clienteExistente } = await supabase
+    .from('fiados')
+    .select('id')
+    .eq('negocio_id', negocioId)
+    .eq('cliente_nombre', clienteNombre)
+    .single()
+
+  let fiadoId
+
+  if (clienteExistente) {
+    fiadoId = clienteExistente.id
+  } else {
+    // Crear nuevo cliente
+    const { data: nuevoCliente } = await supabase
       .from('fiados')
-      .select('id')
-      .eq('negocio_id', negocioId)
-      .eq('cliente_nombre', clienteNombre)
-      .single()
-
-    let fiadoId
-
-    if (clienteExistente) {
-      fiadoId = clienteExistente.id
-    } else {
-      // Crear nuevo cliente
-      const { data: nuevoCliente } = await supabase
-        .from('fiados')
-        .insert({
-          negocio_id: negocioId,
-          cliente_nombre: clienteNombre
-        })
-        .select()
-        .single()
-      
-      fiadoId = nuevoCliente.id
-    }
-
-    // Registrar movimiento de compra
-    await supabase
-      .from('fiados_movimientos')
       .insert({
-        fiado_id: fiadoId,
-        tipo: 'compra',
-        monto,
-        descripcion: 'Compra'
+        negocio_id: negocioId,
+        cliente_nombre: clienteNombre
       })
-  },
+      .select()
+      .single()
+    
+    fiadoId = nuevoCliente.id
+  }
+
+  // Registrar movimiento de compra CON REFERENCIA
+  await supabase
+    .from('fiados_movimientos')
+    .insert({
+      fiado_id: fiadoId,
+      tipo: 'compra',
+      monto,
+      descripcion: `Venta #${ventaId.slice(0, 8)}`,
+      venta_id: ventaId
+    })
+},
 
   // Obtener ventas del día
   async obtenerVentasDelDia(negocioId) {
