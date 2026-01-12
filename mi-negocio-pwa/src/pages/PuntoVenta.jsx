@@ -26,9 +26,9 @@ import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Layout } from '../components/layout/Layout'
-
+import { DetalleVentaModal } from '../components/ventas/DetalleVentaModal'
 export const PuntoVenta = () => {
-  const { user, userData } = useAuthStore()
+  const { user } = useAuthStore()
   const { cajaActual, verificarCajaAbierta } = useCajaStore()
  const { clientes: clientesFiados, cargarClientes: cargarClientesFiados } = useFiadosStore()
   const { productos, cargarProductos } = useProductosStore()
@@ -54,6 +54,10 @@ export const PuntoVenta = () => {
   const [modalVentaRapida, setModalVentaRapida] = useState(false)
   const [mostrarVentas, setMostrarVentas] = useState(false)
 
+// ✅ AGREGAR ESTOS DOS ESTADOS:
+const [modalDetalle, setModalDetalle] = useState(false)
+const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
+
   // Form Pago
   const [metodoPago, setMetodoPago] = useState('efectivo')
   const [clienteNombre, setClienteNombre] = useState('')
@@ -67,14 +71,14 @@ export const PuntoVenta = () => {
 
   // Cargar datos al montar
   useEffect(() => {
-    if (userData?.negocio_id) {
-      verificarCajaAbierta(userData.negocio_id)
-      cargarProductos(userData.negocio_id)
-      cargarVentasDelDia(userData.negocio_id)
-      cargarTotalesDelDia(userData.negocio_id)
-      cargarClientesFiados(userData.negocio_id)
-    }
-  }, [userData])
+  if (user?.negocio_id) {
+    verificarCajaAbierta(user.negocio_id)
+    cargarProductos(user.negocio_id)
+    cargarVentasDelDia(user.negocio_id)
+    cargarTotalesDelDia(user.negocio_id)
+    cargarClientesFiados(user.negocio_id)
+  }
+}, [user])
 
   // Filtrar productos al buscar
   useEffect(() => {
@@ -127,9 +131,9 @@ export const PuntoVenta = () => {
 
     setProcesando(true)
     try {
-      await procesarVenta(
-        userData.negocio_id,
-        user.id,
+     await procesarVenta(
+  user.negocio_id,
+  user.id,
         cajaActual.id,
         metodoPago,
         clienteNombre || null
@@ -141,16 +145,20 @@ export const PuntoVenta = () => {
       setClienteNombre('')
       setEsClienteNuevo(false)
       // Recargar datos
-      await verificarCajaAbierta(userData.negocio_id)
-      await cargarProductos(userData.negocio_id)
-      await cargarTotalesDelDia(userData.negocio_id)
+     await verificarCajaAbierta(user.negocio_id)
+await cargarProductos(user.negocio_id)
+await cargarTotalesDelDia(user.negocio_id)
     } catch (error) {
       toast.error(error.message)
     } finally {
       setProcesando(false)
     }
   }
-
+// Ver detalle de venta
+const handleVerDetalle = (ventaId) => {
+  setVentaSeleccionada(ventaId)
+  setModalDetalle(true)
+}
   const total = useMemo(() => calcularTotal(), [carrito])
 
  return (
@@ -333,35 +341,50 @@ export const PuntoVenta = () => {
                   </Button>
                 </Card>
               )}
-
-              {/* Historial */}
-              {mostrarVentas && (
-                <Card>
-                  <h3 className="text-lg font-semibold text-gray-700 mb-3">
-                    Últimas Ventas
-                  </h3>
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {ventas.slice(0, 10).map(venta => (
-                      <div key={venta.id} className="p-2 bg-gray-50 rounded text-sm">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-semibold">${venta.total.toFixed(2)}</p>
-                            <p className="text-xs text-gray-500">
-                              {format(new Date(venta.fecha), 'HH:mm', { locale: es })}
-                            </p>
-                          </div>
-                          <Badge variant={
-                            venta.metodo_pago === 'efectivo' ? 'success' :
-                            venta.metodo_pago === 'tarjeta' ? 'primary' : 'warning'
-                          }>
-                            {venta.metodo_pago}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
+{/* Historial - Siempre visible */}
+<Card>
+  <h3 className="text-lg font-semibold text-gray-700 mb-3">
+    Ventas de Hoy
+  </h3>
+  {ventas.length === 0 ? (
+    <div className="text-center py-8 text-gray-500">
+      <p className="text-2xl mb-2">📋</p>
+      <p className="text-sm">No hay ventas aún</p>
+    </div>
+  ) : (
+    <div className="space-y-2 max-h-96 overflow-y-auto">
+      {ventas.slice(0, 10).map(venta => (
+        <div 
+          key={venta.id} 
+          className="p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors cursor-pointer"
+          onClick={() => handleVerDetalle(venta.id)}
+        >
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="font-semibold text-gray-800">
+                ${venta.total.toFixed(2)}
+              </p>
+              <p className="text-xs text-gray-500">
+                {format(new Date(venta.fecha), 'HH:mm', { locale: es })}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={
+                venta.metodo_pago === 'efectivo' ? 'success' :
+                venta.metodo_pago === 'tarjeta' ? 'default' : 'warning'
+              }>
+                {venta.metodo_pago}
+              </Badge>
+              <span className="text-primary text-sm font-semibold">
+                Ver →
+              </span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</Card>
             </div>
           </div>
         </div>
@@ -530,6 +553,16 @@ export const PuntoVenta = () => {
           </Button>
         </form>
       </Modal>
+
+      {/* Modal Detalle Venta */}
+      <DetalleVentaModal
+        isOpen={modalDetalle}
+        onClose={() => {
+          setModalDetalle(false)
+          setVentaSeleccionada(null)
+        }}
+        ventaId={ventaSeleccionada}
+      />
     </Layout>
   )
 }
