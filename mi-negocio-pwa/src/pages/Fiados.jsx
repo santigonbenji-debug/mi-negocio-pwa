@@ -14,6 +14,7 @@ import React, { useState, useEffect } from 'react'
 import { useFiadosStore } from '../store/fiadosStore'
 import { useAuthStore } from '../store/authStore'
 import { Layout } from '../components/layout/Layout'
+import { exportarFiados } from '../utils/exportFiados'
 import { Button } from '../components/common/Button'
 import { Card } from '../components/common/Card'
 import { Input } from '../components/common/Input'
@@ -22,9 +23,9 @@ import { Badge } from '../components/common/Badge'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-
+import { DetalleVentaModal } from '../components/ventas/DetalleVentaModal'
 export const Fiados = () => {
-  const { userData } = useAuthStore()
+  const { user } = useAuthStore()
   const {
     clientes,
     clienteActual,
@@ -43,7 +44,9 @@ export const Fiados = () => {
   const [modalDetalle, setModalDetalle] = useState(false)
   const [modalPago, setModalPago] = useState(false)
   const [modalNuevo, setModalNuevo] = useState(false)
-
+//✅ AGREGAR ESTOS ESTADOS:
+const [modalDetalleVenta, setModalDetalleVenta] = useState(false)
+const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
   // Form Pago
   const [montoPago, setMontoPago] = useState('')
   const [descripcionPago, setDescripcionPago] = useState('')
@@ -54,11 +57,11 @@ export const Fiados = () => {
 
   // Cargar datos al montar
   useEffect(() => {
-    if (userData?.negocio_id) {
-      cargarClientes(userData.negocio_id)
-      cargarEstadisticas(userData.negocio_id)
-    }
-  }, [userData])
+   if (user?.negocio_id) {
+  cargarClientes(user.negocio_id)
+  cargarEstadisticas(user.negocio_id)
+}
+  }, [user])
 
   // Ver detalle de cliente
   const handleVerDetalle = async (cliente) => {
@@ -98,7 +101,7 @@ export const Fiados = () => {
       setDescripcionPago('')
       
       // Recargar estadísticas
-      await cargarEstadisticas(userData.negocio_id)
+      await cargarEstadisticas(user.negocio_id)
       
       // Si pagó todo, cerrar modal
       if (monto === clienteActual.deuda_total) {
@@ -125,7 +128,20 @@ export const Fiados = () => {
       toast.error(error.message)
     }
   }
-
+//Ver detalle de venta desde movimiento
+const handleVerDetalleVenta = (ventaId) => {
+  setVentaSeleccionada(ventaId)
+  setModalDetalleVenta(true)
+}
+const handleExportar = () => {
+    try {
+      exportarFiados(clientes)
+      toast.success('✅ Fiados exportados correctamente')
+    } catch (error) {
+      toast.error('Error al exportar fiados')
+      console.error(error)
+    }
+  }
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -133,9 +149,18 @@ export const Fiados = () => {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-4xl font-bold text-primary">📝 Fiados</h1>
-            <Button onClick={() => setModalNuevo(true)}>
-              + Nuevo Cliente
-            </Button>
+            <div className="flex gap-3">
+  <Button 
+    variant="secondary"
+    onClick={handleExportar}
+    disabled={clientes.length === 0}
+  >
+    📥 Exportar Excel
+  </Button>
+  <Button onClick={() => setModalAgregar(true)}>
+    + Agregar Cliente
+  </Button>
+</div>
           </div>
 
           {/* Estadísticas */}
@@ -276,37 +301,48 @@ export const Fiados = () => {
             </div>
 
             {/* Historial de movimientos */}
-            <div>
-              <h3 className="font-bold text-lg mb-3">
-                Historial ({movimientos.length} movimientos)
-              </h3>
-              {movimientos.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">
-                  No hay movimientos registrados
-                </p>
-              ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {movimientos.map(mov => (
-                    <div
-                      key={mov.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                    >
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-800">
-                          {mov.descripcion}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {format(new Date(mov.fecha), "dd/MM/yyyy HH:mm", { locale: es })}
-                        </p>
-                      </div>
-                      <Badge variant={mov.tipo === 'compra' ? 'danger' : 'success'}>
-                        {mov.tipo === 'compra' ? '+' : '-'}${parseFloat(mov.monto).toFixed(2)}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+           {/* Historial de movimientos */}
+<div>
+  <h3 className="font-bold text-lg mb-3">
+    Historial ({movimientos.length} movimientos)
+  </h3>
+  {movimientos.length === 0 ? (
+    <p className="text-center text-gray-500 py-8">
+      No hay movimientos registrados
+    </p>
+  ) : (
+    <div className="space-y-2 max-h-96 overflow-y-auto">
+      {movimientos.map(mov => (
+        <div
+          key={mov.id}
+          className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg ${
+            mov.venta_id ? 'hover:bg-gray-100 cursor-pointer' : ''
+          }`}
+          onClick={() => mov.venta_id && handleVerDetalleVenta(mov.venta_id)}
+        >
+          <div className="flex-1">
+            <p className="font-semibold text-gray-800">
+              {mov.descripcion}
+            </p>
+            <p className="text-xs text-gray-500">
+              {format(new Date(mov.fecha), "dd/MM/yyyy HH:mm", { locale: es })}
+            </p>
+            {mov.venta_id && (
+              <p className="text-xs text-primary font-semibold mt-1">
+                Click para ver detalle →
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={mov.tipo === 'compra' ? 'danger' : 'success'}>
+              {mov.tipo === 'compra' ? '+' : '-'}${parseFloat(mov.monto).toFixed(2)}
+            </Badge>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
           </div>
         )}
       </Modal>
@@ -397,7 +433,17 @@ export const Fiados = () => {
             Agregar Cliente
           </Button>
         </form>
-      </Modal>
+       </Modal>
+
+      {/* Modal Detalle Venta */}
+      <DetalleVentaModal
+        isOpen={modalDetalleVenta}
+        onClose={() => {
+          setModalDetalleVenta(false)
+          setVentaSeleccionada(null)
+        }}
+        ventaId={ventaSeleccionada}
+      />
     </Layout>
   )
 }
