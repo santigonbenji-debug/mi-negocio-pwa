@@ -18,19 +18,25 @@ import { Modal } from '../components/common/Modal'
 import { Badge } from '../components/common/Badge'
 import toast from 'react-hot-toast'
 import { Layout } from '../components/layout/Layout'
+import { usePermisos } from '../hooks/usePermisos'
+import { exportarInventario } from '../utils/exportInventario'
 
 export const Inventario = () => {
-  const { user, userData } = useAuthStore()
+  const { user } = useAuthStore()
+  const { puedeModificarInventario, puedeEliminarProductos } = usePermisos()
   const { 
-    productos, 
-    cargando, 
-    cargarProductos, 
-    buscarProductos, 
-    agregarProducto, 
-    agregarStock 
-  } = useProductosStore()
+  productos, 
+  cargando, 
+  cargarProductos, 
+  buscarProductos, 
+  agregarProducto,
+  actualizarProducto,
+  agregarStock 
+} = useProductosStore()
   
   const [modalAgregar, setModalAgregar] = useState(false)
+  const [modalEditar, setModalEditar] = useState(false)
+const [productoEditar, setProductoEditar] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   
   // Form
@@ -41,34 +47,33 @@ export const Inventario = () => {
   const [codigoBarras, setCodigoBarras] = useState('')
 
   // Cargar productos al montar
-  useEffect(() => {
-    if (user?.id) {
-      // Por ahora usamos el user.id como negocio_id (en la próxima etapa crearemos la tabla de negocios)
-      cargarProductos(userData?.negocio_id)
-    }
-  }, [user])
+ useEffect(() => {
+  if (user?.negocio_id) {
+    cargarProductos(user.negocio_id)
+  }
+}, [user])
 
   // Búsqueda en tiempo real
   const handleBusqueda = (valor) => {
-    setBusqueda(valor)
-    if (valor.trim()) {
-      buscarProductos(userData.negocio_id, valor)
-    } else {
-      cargarProductos(userData.negocio_id)
-    }
+  setBusqueda(valor)
+  if (valor.trim()) {
+    buscarProductos(user.negocio_id, valor)
+  } else {
+    cargarProductos(user.negocio_id)
   }
+}
 
   // Agregar producto
-  const handleAgregar = async (e) => {
-    e.preventDefault()
-    try {
-      await agregarProducto(userData.negocio_id, {
-        nombre,
-        precio: parseFloat(precio),
-        stock_actual: parseInt(stock),
-        stock_minimo: parseInt(stockMinimo),
-        codigo_barras: codigoBarras || null
-      })
+ const handleAgregar = async (e) => {
+  e.preventDefault()
+  try {
+    await agregarProducto(user.negocio_id, {
+      nombre,
+      precio: parseFloat(precio),
+      stock_actual: parseInt(stock),
+      stock_minimo: parseInt(stockMinimo),
+      codigo_barras: codigoBarras || null
+    })
       toast.success('✅ Producto agregado')
       setModalAgregar(false)
       // Limpiar form
@@ -81,7 +86,51 @@ export const Inventario = () => {
       toast.error(error.message || 'Error al agregar producto')
     }
   }
+const handleEditar = async (e) => {
+  e.preventDefault()
+  try {
+    await actualizarProducto(productoEditar.id, {
+      nombre,
+      precio: parseFloat(precio),
+      stock_actual: parseInt(stock),
+      stock_minimo: parseInt(stockMinimo)
+    })
+    toast.success('Producto actualizado')
+    setModalEditar(false)
+    setProductoEditar(null)
+    // Limpiar form
+    setNombre('')
+    setPrecio('')
+    setStock('')
+    setStockMinimo('5')
+  } catch (error) {
+    toast.error(error.message)
+  }
+}
 
+const abrirModalEditar = (producto) => {
+  setProductoEditar(producto)
+  setNombre(producto.nombre)
+  setPrecio(producto.precio.toString())
+  setStock(producto.stock_actual.toString())
+  setStockMinimo(producto.stock_minimo.toString())
+  setModalEditar(true)
+}
+
+const handleEliminar = async (id) => {
+  if (!window.confirm('¿Estás seguro de eliminar este producto?')) return
+  
+  try {
+    await actualizarProducto(id, { activo: false })
+    toast.success('Producto eliminado')
+    // Recargar productos
+    if (user?.negocio_id) {
+      cargarProductos(user.negocio_id)
+    }
+  } catch (error) {
+    toast.error('Error al eliminar producto')
+  }
+}
   // Agregar stock rápido
   const handleAgregarStock = async (id, cantidad) => {
     try {
@@ -90,12 +139,56 @@ export const Inventario = () => {
     } catch (error) {
       toast.error('Error al actualizar stock')
     }
+ }
+
+  // Exportar inventario a Excel
+  const handleExportar = () => {
+    try {
+      exportarInventario(productos)
+      toast.success('✅ Inventario exportado correctamente')
+    } catch (error) {
+      toast.error('Error al exportar inventario')
+      console.error(error)
+    }
   }
 
   return (
   <Layout>
     <div className="max-w-7xl mx-auto px-4 py-8">
+{/* Header */}
+<div className="mb-6 flex items-center justify-between">
+  <div>
+    <h1 className="text-4xl font-bold text-primary mb-2">
+      📦 Inventario
+    </h1>
+    <p className="text-gray-600">
+      Gestiona tus productos
+    </p>
+  </div>
+  <div className="flex gap-3">
+    <Button 
+      variant="secondary"
+      onClick={handleExportar}
+      disabled={productos.length === 0}
+    >
+      📥 Exportar Excel
+    </Button>
+    {puedeModificarInventario && (
+      <Button onClick={() => setModalAgregar(true)}>
+        + Agregar Producto
+      </Button>
+    )}
+  </div>
+</div>
 
+{/* Búsqueda */}
+<div className="mb-6">
+  <Input
+    placeholder="🔍 Buscar productos..."
+    value={busqueda}
+    onChange={e => handleBusqueda(e.target.value)}
+  />
+</div>
       {/* Contenido */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {cargando ? (
@@ -111,7 +204,8 @@ export const Inventario = () => {
             <p className="text-gray-600 mb-6">
               {busqueda ? 'No se encontraron productos con ese nombre' : '¡Agrega tu primer producto!'}
             </p>
-            {!busqueda && (
+            {puedeModificarInventario && (
+                
               <Button onClick={() => setModalAgregar(true)}>
                 + Agregar Primer Producto
               </Button>
@@ -152,30 +246,55 @@ export const Inventario = () => {
                     )}
                   </div>
 
-                  {/* Botones rápidos */}
-                  <div className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      className="flex-1 text-sm py-2"
-                      onClick={() => handleAgregarStock(producto.id, 1)}
-                    >
-                      +1
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      className="flex-1 text-sm py-2"
-                      onClick={() => handleAgregarStock(producto.id, 5)}
-                    >
-                      +5
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      className="flex-1 text-sm py-2"
-                      onClick={() => handleAgregarStock(producto.id, 10)}
-                    >
-                      +10
-                    </Button>
-                  </div>
+                  {/* Botones de acción */}
+<div className="space-y-2">
+  {/* Botones agregar stock */}
+  <div className="flex gap-2">
+    <Button
+      variant="secondary"
+      className="flex-1 text-sm py-2"
+      onClick={() => handleAgregarStock(producto.id, 1)}
+    >
+      +1
+    </Button>
+    <Button
+      variant="secondary"
+      className="flex-1 text-sm py-2"
+      onClick={() => handleAgregarStock(producto.id, 5)}
+    >
+      +5
+    </Button>
+    <Button
+      variant="secondary"
+      className="flex-1 text-sm py-2"
+      onClick={() => handleAgregarStock(producto.id, 10)}
+    >
+      +10
+    </Button>
+  </div>
+
+  {/* Botones admin */}
+  {puedeModificarInventario && (
+    <div className="flex gap-2">
+      <Button
+        variant="primary"
+        className="flex-1 text-sm py-2"
+        onClick={() => abrirModalEditar(producto)}
+      >
+        ✏️ Editar
+      </Button>
+      {puedeEliminarProductos && (
+        <Button
+          variant="danger"
+          className="flex-1 text-sm py-2"
+          onClick={() => handleEliminar(producto.id)}
+        >
+          🗑️ Eliminar
+        </Button>
+      )}
+    </div>
+  )}
+</div>
                 </Card>
               )
             })}
@@ -231,7 +350,54 @@ export const Inventario = () => {
             Agregar Producto
           </Button>
         </form>
-      </Modal>
+     </Modal>
+
+{/* Modal Editar */}
+<Modal
+  isOpen={modalEditar}
+  onClose={() => {
+    setModalEditar(false)
+    setProductoEditar(null)
+  }}
+  title="Editar Producto"
+>
+  <form onSubmit={handleEditar} className="space-y-4">
+    <Input
+      label="Nombre del producto"
+      value={nombre}
+      onChange={e => setNombre(e.target.value)}
+      placeholder="Ej: Coca-Cola 500ml"
+      required
+    />
+    <Input
+      label="Precio"
+      type="number"
+      step="0.01"
+      value={precio}
+      onChange={e => setPrecio(e.target.value)}
+      placeholder="0.00"
+      required
+    />
+    <Input
+      label="Stock actual"
+      type="number"
+      value={stock}
+      onChange={e => setStock(e.target.value)}
+      placeholder="0"
+      required
+    />
+    <Input
+      label="Stock mínimo (para alertas)"
+      type="number"
+      value={stockMinimo}
+      onChange={e => setStockMinimo(e.target.value)}
+      placeholder="5"
+    />
+    <Button type="submit" className="w-full" variant="success">
+      Guardar Cambios
+    </Button>
+  </form>
+</Modal>
     </div>
     </Layout>
   )
