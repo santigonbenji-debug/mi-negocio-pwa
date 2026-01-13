@@ -25,6 +25,7 @@ export const Fiados = () => {
     seleccionarCliente,
     registrarPago,
     crearCliente,
+    eliminarCliente,
     cargarEstadisticas,
     limpiarSeleccion
   } = useFiadosStore()
@@ -112,6 +113,20 @@ export const Fiados = () => {
     setVentaSeleccionada(ventaId)
     setModalDetalleVenta(true)
   }
+  const handleEliminarCliente = async (cliente) => {
+  if (!window.confirm(`¿Estas seguro de eliminar a ${cliente.cliente_nombre}?\n\nEsta accion no se puede deshacer.`)) {
+    return
+  }
+
+  try {
+    await eliminarCliente(cliente.id)
+    toast.success('Cliente eliminado correctamente')
+    await cargarEstadisticas(user.negocio_id)
+  } catch (error) {
+    console.error('Error al eliminar:', error)
+    toast.error(error.message || 'Error al eliminar cliente')
+  }
+}
 
   const handleExportar = () => {
     try {
@@ -191,51 +206,66 @@ export const Fiados = () => {
             </Button>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {clientes.map(cliente => {
-              const deuda = parseFloat(cliente.deuda_total)
-              const tieneDeuda = deuda > 0
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {clientes.map(cliente => {
+    const deuda = parseFloat(cliente.deuda_total)
+    const tieneDeuda = deuda > 0
 
-              return (
-                <Card
-                  key={cliente.id}
-                  className="hover:shadow-xl transition-shadow cursor-pointer"
-                  onClick={() => handleVerDetalle(cliente)}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg text-gray-800">
-                        {cliente.cliente_nombre}
-                      </h3>
-                      {cliente.telefono && (
-                        <p className="text-sm text-gray-500">
-                          📞 {cliente.telefono}
-                        </p>
-                      )}
-                    </div>
-                    {tieneDeuda ? (
-                      <Badge variant="danger">Debe</Badge>
-                    ) : (
-                      <Badge variant="success">Al dia</Badge>
-                    )}
-                  </div>
-
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-600">Saldo:</p>
-                    <p className={`text-3xl font-bold ${tieneDeuda ? 'text-danger' : 'text-success'}`}>
-                      ${deuda.toFixed(2)}
-                    </p>
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-gray-500">
-                      Cliente desde {format(new Date(cliente.creado_en), 'dd/MM/yyyy', { locale: es })}
-                    </p>
-                  </div>
-                </Card>
-              )
-            })}
+    return (
+      <Card
+        key={cliente.id}
+        className="hover:shadow-xl transition-shadow"
+      >
+        <div className="flex items-start justify-between mb-3">
+          <div 
+            className="flex-1 cursor-pointer"
+            onClick={() => handleVerDetalle(cliente)}
+          >
+            <h3 className="font-bold text-lg text-gray-800">
+              {cliente.cliente_nombre}
+            </h3>
+            {cliente.telefono && (
+              <p className="text-sm text-gray-500">
+                📞 {cliente.telefono}
+              </p>
+            )}
           </div>
+          {tieneDeuda ? (
+            <Badge variant="danger">Debe</Badge>
+          ) : (
+            <Badge variant="success">Al dia</Badge>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <p className="text-sm text-gray-600">Saldo:</p>
+          <p className={`text-3xl font-bold ${tieneDeuda ? 'text-danger' : 'text-success'}`}>
+            ${deuda.toFixed(2)}
+          </p>
+        </div>
+
+        <div className="mt-4 pt-4 border-t flex items-center justify-between">
+          <p className="text-xs text-gray-500">
+            Cliente desde {format(new Date(cliente.creado_en), 'dd/MM/yyyy', { locale: es })}
+          </p>
+          
+          {!tieneDeuda && (
+            <Button
+              variant="danger"
+              className="text-xs py-1 px-3"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleEliminarCliente(cliente)
+              }}
+            >
+              🗑️ Eliminar
+            </Button>
+          )}
+        </div>
+      </Card>
+    )
+  })}
+</div>
         )}
       </div>
 
