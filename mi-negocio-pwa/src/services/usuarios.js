@@ -97,14 +97,7 @@ export const usuariosService = {
     if (error) throw error
     return data
   },
-  async eliminar(userId) {
-  const { error } = await supabase
-    .from('usuarios')
-    .delete()
-    .eq('id', userId)
-
-  if (error) throw error
-},
+ 
 
   async cambiarRol(userId, nuevoRol) {
     const { data, error } = await supabase
@@ -117,6 +110,14 @@ export const usuariosService = {
     if (error) throw error
     return data
   },
+   async eliminar(userId) {
+  const { error } = await supabase
+    .from('usuarios')
+    .delete()
+    .eq('id', userId)
+
+  if (error) throw error
+},
 
   generarMensajeWhatsApp(nombre, email, password, urlApp = window.location.origin) {
     return `🏪 *Acceso al Sistema de Gestion*
@@ -131,4 +132,5 @@ Te han dado acceso al sistema. Aqui estan tus credenciales:
 
 _Por seguridad, cambia tu contraseña despues de iniciar sesion._`
   }
+  
 }
