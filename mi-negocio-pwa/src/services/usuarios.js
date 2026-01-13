@@ -97,6 +97,14 @@ export const usuariosService = {
     if (error) throw error
     return data
   },
+  async eliminar(userId) {
+  const { error } = await supabase
+    .from('usuarios')
+    .delete()
+    .eq('id', userId)
+
+  if (error) throw error
+},
 
   async cambiarRol(userId, nuevoRol) {
     const { data, error } = await supabase

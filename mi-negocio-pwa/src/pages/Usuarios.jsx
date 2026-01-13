@@ -124,6 +124,21 @@ export const Usuarios = () => {
     }
   }
 
+  const handleEliminar = async (usuario) => {
+    if (!window.confirm(`¿Estas seguro de eliminar a ${usuario.nombre}? Esta accion no se puede deshacer.`)) {
+      return
+    }
+
+    try {
+      await usuariosService.eliminar(usuario.id)
+      toast.success('Usuario eliminado correctamente')
+      await cargarUsuarios()
+    } catch (error) {
+      console.error('Error al eliminar:', error)
+      toast.error('Error al eliminar usuario')
+    }
+  }
+
   if (!esAdmin) {
     return (
       <Layout>
@@ -186,24 +201,33 @@ export const Usuarios = () => {
                   </Badge>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
                     <Badge variant={usuario.rol === 'admin' ? 'warning' : 'default'}>
                       {usuario.rol === 'admin' ? '👑 Admin' : '👤 Empleado'}
                     </Badge>
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-gray-500">
                       Creado: {format(new Date(usuario.creado_en), "dd/MM/yyyy", { locale: es })}
                     </p>
                   </div>
 
                   {usuario.id !== user.id && (
-                    <Button
-                      variant={usuario.activo ? 'danger' : 'success'}
-                      onClick={() => toggleActivo(usuario)}
-                      className="text-sm"
-                    >
-                      {usuario.activo ? 'Desactivar' : 'Activar'}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant={usuario.activo ? 'secondary' : 'success'}
+                        onClick={() => toggleActivo(usuario)}
+                        className="flex-1 text-sm"
+                      >
+                        {usuario.activo ? 'Desactivar' : 'Activar'}
+                      </Button>
+                      <Button
+                        variant="danger"
+                        onClick={() => handleEliminar(usuario)}
+                        className="flex-1 text-sm"
+                      >
+                        🗑️ Eliminar
+                      </Button>
+                    </div>
                   )}
                 </div>
               </Card>
