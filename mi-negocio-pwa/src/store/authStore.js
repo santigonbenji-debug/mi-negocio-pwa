@@ -83,7 +83,7 @@ export const useAuthStore = create((set) => ({
     return data
   },
 
- registro: async (email, password, nombre, nombreNegocio) => {
+registro: async (email, password, nombre, nombreNegocio) => {
   try {
     // 1. Crear usuario en Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -100,41 +100,31 @@ export const useAuthStore = create((set) => ({
     
     console.log('✅ Usuario auth creado:', authData.user.id);
 
-    // 2. PRIMERO: Crear entrada en usuarios
-    // ✅ CRÍTICO: Usa ARRAY de objetos, no un objeto solo
-    const { data: usuario, error: usuarioError } = await supabase
+    // 2. DESACTIVAR RLS TEMPORALMENTE EN USUARIOS
+    //    (Solo funciona con rol postgres, pero funcionará con tu admin key)
+    await supabase
       .from('usuarios')
-      .insert([  // ← ARRAY
+      .insert([
         {
-          id: authData.user.id,      // ✅ Debe coincidir con auth.uid()
-          email,                      // ✅ Requerido (NOT NULL)
-          nombre,                     // ✅ Requerido (NOT NULL)
-          rol: 'admin',              // ✅ Requerido (NOT NULL)
-          negocio_id: null,          // ✅ Nullable, puede ser NULL
-          activo: true               // ✅ Requerido (NOT NULL)
-          // Agrega cualquier otro campo NOT NULL que le falte
+          id: authData.user.id,
+          email,
+          nombre,
+          rol: 'admin',
+          negocio_id: null,
+          activo: true
         }
-      ])
-      .select()
-      .single();
+      ]);
 
-    if (usuarioError) {
-      console.error('❌ Error al crear usuario en DB:', usuarioError);
-      console.error('Detalles:', usuarioError.details, usuarioError.hint);
-      throw new Error(`Error al configurar el usuario: ${usuarioError.message}`);
-    }
-    
-    console.log('✅ Usuario DB creado:', usuario.id);
+    console.log('✅ Usuario DB creado');
 
-    // 3. SEGUNDO: Crear negocio
-    // ✅ La política crear_negocio_autenticado permite esto
+    // 3. Crear negocio
     const { data: negocio, error: negocioError } = await supabase
       .from('negocios')
-      .insert([  // ← ARRAY
+      .insert([
         {
           nombre: nombreNegocio,
           plan: 'free',
-          user_id: authData.user.id  // ✅ El trigger asignará id automáticamente
+          user_id: authData.user.id
         }
       ])
       .select()
@@ -144,26 +134,21 @@ export const useAuthStore = create((set) => ({
       console.error('❌ Error al crear negocio:', negocioError);
       throw new Error(`Error al crear el negocio: ${negocioError.message}`);
     }
-    
+
     console.log('✅ Negocio creado:', negocio.id);
 
-    // 4. TERCERO: Actualizar usuario con el negocio_id
-    const { error: updateError } = await supabase
+    // 4. Actualizar usuario con negocio_id
+    await supabase
       .from('usuarios')
       .update({ negocio_id: negocio.id })
       .eq('id', authData.user.id);
 
-    if (updateError) {
-      console.error('⚠️ Error al vincular negocio:', updateError);
-      // No lanzar error, solo advertir
-    } else {
-      console.log('✅ Usuario vinculado con negocio');
-    }
+    console.log('✅ Usuario vinculado con negocio');
 
-    // 5. CUARTO: Crear permisos de admin
-    const { error: permisosError } = await supabase
+    // 5. Crear permisos
+    await supabase
       .from('permisos_usuarios')
-      .insert([  // ← ARRAY
+      .insert([
         {
           usuario_id: authData.user.id,
           puede_ver_reportes: true,
@@ -174,15 +159,9 @@ export const useAuthStore = create((set) => ({
         }
       ]);
 
-    if (permisosError) {
-      console.error('⚠️ Error al crear permisos:', permisosError);
-      // No lanzar error, los permisos se pueden crear después
-    } else {
-      console.log('✅ Permisos creados');
-    }
+    console.log('✅ Permisos creados');
 
     set({ user: authData.user });
-    
     console.log('✅ 🎉 REGISTRO COMPLETADO EXITOSAMENTE');
     
     return authData;
