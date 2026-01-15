@@ -99,14 +99,15 @@ export const useAuthStore = create((set) => ({
       if (!authData.user) throw new Error('No se pudo crear el usuario')
 
       // 2. Crear negocio
-      const { data: negocio, error: negocioError } = await supabase
-        .from('negocios')
-        .insert({
-          nombre: nombreNegocio,
-          plan: 'free'
-        })
-        .select()
-        .single()
+const { data: negocio, error: negocioError } = await supabase
+  .from('negocios')
+  .insert({
+    nombre: nombreNegocio,
+    plan: 'free',
+    user_id: authData.user.id  // ← AGREGAR ESTA LÍNEA
+  })
+  .select()
+  .single()
 
       if (negocioError) {
         console.error('Error al crear negocio:', negocioError)
