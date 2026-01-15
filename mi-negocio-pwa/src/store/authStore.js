@@ -93,82 +93,33 @@ registro: async (email, password, nombre, nombreNegocio) => {
         data: { nombre },
         emailRedirectTo: window.location.origin
       }
-    });
+    })
 
-    if (authError) throw authError;
-    if (!authData.user) throw new Error('No se pudo crear el usuario');
-    
-    console.log('✅ Usuario auth creado:', authData.user.id);
+    if (authError) throw authError
+    if (!authData.user) throw new Error('No se pudo crear el usuario')
 
-    // 2. DESACTIVAR RLS TEMPORALMENTE EN USUARIOS
-    //    (Solo funciona con rol postgres, pero funcionará con tu admin key)
-    await supabase
-      .from('usuarios')
-      .insert([
-        {
-          id: authData.user.id,
-          email,
-          nombre,
-          rol: 'admin',
-          negocio_id: null,
-          activo: true
-        }
-      ]);
+    console.log('✅ Usuario creado en Auth:', authData.user.id)
 
-    console.log('✅ Usuario DB creado');
+    // 2. Llamar a la función SQL que hace todo el registro
+    const { data, error } = await supabase.rpc('registrar_usuario_completo', {
+      p_user_id: authData.user.id,
+      p_email: email,
+      p_nombre: nombre,
+      p_nombre_negocio: nombreNegocio
+    })
 
-    // 3. Crear negocio
-    const { data: negocio, error: negocioError } = await supabase
-      .from('negocios')
-      .insert([
-        {
-          nombre: nombreNegocio,
-          plan: 'free',
-          user_id: authData.user.id
-        }
-      ])
-      .select()
-      .single();
-
-    if (negocioError) {
-      console.error('❌ Error al crear negocio:', negocioError);
-      throw new Error(`Error al crear el negocio: ${negocioError.message}`);
+    if (error) {
+      console.error('❌ Error en función de registro:', error)
+      throw new Error('Error al completar el registro')
     }
 
-    console.log('✅ Negocio creado:', negocio.id);
+    console.log('✅ Registro completado:', data)
 
-    // 4. Actualizar usuario con negocio_id
-    await supabase
-      .from('usuarios')
-      .update({ negocio_id: negocio.id })
-      .eq('id', authData.user.id);
-
-    console.log('✅ Usuario vinculado con negocio');
-
-    // 5. Crear permisos
-    await supabase
-      .from('permisos_usuarios')
-      .insert([
-        {
-          usuario_id: authData.user.id,
-          puede_ver_reportes: true,
-          puede_modificar_precios: true,
-          puede_eliminar_productos: true,
-          puede_gestionar_caja: true,
-          puede_hacer_ventas: true
-        }
-      ]);
-
-    console.log('✅ Permisos creados');
-
-    set({ user: authData.user });
-    console.log('✅ 🎉 REGISTRO COMPLETADO EXITOSAMENTE');
-    
-    return authData;
-
+    set({ user: authData.user })
+    return authData
   } catch (error) {
-    console.error('❌ Error en registro completo:', error.message);
-    throw error;
+    console.error('❌ Error en registro:', error)
+    throw error
   }
 },
 
