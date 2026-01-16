@@ -128,7 +128,7 @@ async registrarFiado(negocioId, clienteNombre, monto, ventaId) {
 
     const { data, error } = await supabase
       .from('ventas')
-      .select('*, usuarios(nombre)')
+      .select('*')  // ✅ SIN EMBED
       .eq('negocio_id', negocioId)
       .gte('fecha', hoy.toISOString())
       .order('fecha', { ascending: false })
@@ -141,11 +141,7 @@ async registrarFiado(negocioId, clienteNombre, monto, ventaId) {
   async obtenerDetalles(ventaId) {
     const { data, error } = await supabase
       .from('ventas')
-      .select(`
-        *,
-        usuarios(nombre),
-        ventas_items(*)
-      `)
+      .select('*, ventas_items(*)')  // ✅ SOLO ventas_items (esta relación es clara)
       .eq('id', ventaId)
       .single()
 
