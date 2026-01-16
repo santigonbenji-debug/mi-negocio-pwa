@@ -17,18 +17,17 @@
 import { supabase } from './supabase'
 
 export const cajaService = {
-  // Verificar si hay caja abierta
-  async cajaAbierta(negocioId) {
-    const { data, error } = await supabase
-      .from('cajas')
-      .select('*')
-      .eq('negocio_id', negocioId)
-      .eq('estado', 'abierta')
-      .single()
-    
-    if (error && error.code !== 'PGRST116') throw error
-    return data
-  },
+ async cajaAbierta(negocioId) {
+  const { data, error } = await supabase
+    .from('cajas')
+    .select('*')
+    .eq('negocio_id', negocioId)
+    .eq('estado', 'abierta')
+    .maybeSingle()  // ← CAMBIO: Devuelve null si no hay resultados
+
+  if (error) throw error
+  return data  // null si no hay caja abierta, objeto si hay
+},
 
   // Abrir nueva caja
   async abrirCaja(negocioId, usuarioId, montoInicial) {
