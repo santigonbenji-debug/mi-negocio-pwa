@@ -13,14 +13,15 @@ export const useAuthStore = create((set) => ({
       const authUser = await authService.usuarioActual()
 
       if (authUser) {
+        // ✅ CAMBIO: Select explícito sin expansión automática
         const { data: userData, error } = await supabase
           .from('usuarios')
-          .select('*')
+          .select('id, email, nombre, rol, negocio_id, activo, creado_en')
           .eq('id', authUser.id)
           .single()
 
         if (error) {
-          console.error('Error al obtener datos de usuario:', error)
+          console.error('Error al cargar datos del usuario:', error)
           set({ user: authUser, loading: false })
           return
         }
@@ -53,14 +54,15 @@ export const useAuthStore = create((set) => ({
   login: async (email, password) => {
     const data = await authService.login(email, password)
 
+    // ✅ CAMBIO: Select explícito sin expansión automática
     const { data: userData, error } = await supabase
       .from('usuarios')
-      .select('*')
+      .select('id, email, nombre, rol, negocio_id, activo, creado_en')
       .eq('id', data.user.id)
       .single()
 
     if (error) {
-      console.error('Error al obtener datos de usuario:', error)
+      console.error('Error al cargar datos del usuario:', error)
       set({ user: data.user })
       return data
     }
@@ -83,45 +85,45 @@ export const useAuthStore = create((set) => ({
     return data
   },
 
-registro: async (email, password, nombre, nombreNegocio) => {
-  try {
-    // 1. Crear usuario en Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { nombre },
-        emailRedirectTo: window.location.origin
+  registro: async (email, password, nombre, nombreNegocio) => {
+    try {
+      // 1. Crear usuario en Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { nombre },
+          emailRedirectTo: window.location.origin
+        }
+      })
+
+      if (authError) throw authError
+      if (!authData.user) throw new Error('No se pudo crear el usuario')
+
+      console.log('✅ Usuario creado en Auth:', authData.user.id)
+
+      // 2. Llamar a la función SQL que hace todo el registro
+      const { data, error } = await supabase.rpc('registrar_usuario_completo', {
+        p_user_id: authData.user.id,
+        p_email: email,
+        p_nombre: nombre,
+        p_nombre_negocio: nombreNegocio
+      })
+
+      if (error) {
+        console.error('❌ Error en función de registro:', error)
+        throw new Error('Error al completar el registro')
       }
-    })
 
-    if (authError) throw authError
-    if (!authData.user) throw new Error('No se pudo crear el usuario')
+      console.log('✅ Registro completado:', data)
 
-    console.log('✅ Usuario creado en Auth:', authData.user.id)
-
-    // 2. Llamar a la función SQL que hace todo el registro
-    const { data, error } = await supabase.rpc('registrar_usuario_completo', {
-      p_user_id: authData.user.id,
-      p_email: email,
-      p_nombre: nombre,
-      p_nombre_negocio: nombreNegocio
-    })
-
-    if (error) {
-      console.error('❌ Error en función de registro:', error)
-      throw new Error('Error al completar el registro')
+      set({ user: authData.user })
+      return authData
+    } catch (error) {
+      console.error('❌ Error en registro:', error)
+      throw error
     }
-
-    console.log('✅ Registro completado:', data)
-
-    set({ user: authData.user })
-    return authData
-  } catch (error) {
-    console.error('❌ Error en registro:', error)
-    throw error
-  }
-},
+  },
 
   logout: async () => {
     await authService.logout()
