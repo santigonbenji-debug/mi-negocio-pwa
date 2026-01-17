@@ -120,27 +120,45 @@ export const reportesService = {
 },
 
   // Productos más vendidos
-  async productosMasVendidos(negocioId, limite = 5) {
-  // Hacer join con ventas para filtrar por negocio_id
-  const { data } = await supabase
+async productosMasVendidos(negocioId, limite = 5) {
+  // PASO 1: Obtener IDs de ventas del negocio
+  const { data: ventas } = await supabase
+    .from('ventas')
+    .select('id')
+    .eq('negocio_id', negocioId)
+
+  if (!ventas || ventas.length === 0) return []
+
+  const ventasIds = ventas.map(v => v.id)
+
+  // PASO 2: Obtener items de esas ventas
+  const { data: items } = await supabase
     .from('ventas_items')
-    .select(`
-      cantidad,
-      producto_id,
-      productos (nombre),
-      ventas!inner (negocio_id)
-    `)
-    .eq('ventas.negocio_id', negocioId)
+    .select('cantidad, producto_id')
+    .in('venta_id', ventasIds)
     .not('producto_id', 'is', null)
 
-  if (!data || data.length === 0) return []
+  if (!items || items.length === 0) return []
+
+  // PASO 3: Obtener nombres de productos
+  const productosIds = [...new Set(items.map(i => i.producto_id))]
+  const { data: productos } = await supabase
+    .from('productos')
+    .select('id, nombre')
+    .in('id', productosIds)
+
+  // Crear mapa de productos
+  const productosMap = {}
+  productos?.forEach(p => {
+    productosMap[p.id] = p.nombre
+  })
 
   // Agrupar por producto
   const ventasPorProducto = {}
   
-  for (const item of data) {
-    if (item.productos && item.productos.nombre) {
-      const nombre = item.productos.nombre
+  for (const item of items) {
+    const nombre = productosMap[item.producto_id]
+    if (nombre) {
       if (!ventasPorProducto[nombre]) {
         ventasPorProducto[nombre] = 0
       }
@@ -192,16 +210,37 @@ export const reportesService = {
 
 // Obtener cajas en un rango de fechas
 async cajasEnPeriodo(negocioId, fechaInicio, fechaFin) {
-  const { data, error } = await supabase
+  const { data: cajas, error } = await supabase
     .from('cajas')
-    .select('*, usuarios(nombre)')
+    .select('*')
     .eq('negocio_id', negocioId)
     .gte('fecha_apertura', fechaInicio)
     .lte('fecha_apertura', fechaFin)
     .order('fecha_apertura', { ascending: false })
 
   if (error) throw error
-  return data || []
+
+  // Obtener nombres de usuarios por separado
+  if (cajas && cajas.length > 0) {
+    const usuariosIds = [...new Set(cajas.map(c => c.usuario_id))]
+    const { data: usuarios } = await supabase
+      .from('usuarios')
+      .select('id, nombre')
+      .in('id', usuariosIds)
+
+    // Mapear nombres a las cajas
+    const usuariosMap = {}
+    usuarios?.forEach(u => {
+      usuariosMap[u.id] = u
+    })
+
+    return cajas.map(caja => ({
+      ...caja,
+      usuarios: usuariosMap[caja.usuario_id]
+    }))
+  }
+
+  return cajas || []
 },
 
 // Obtener movimientos de una caja específica
@@ -220,7 +259,7 @@ async movimientosDeCaja(cajaId) {
 async ventasEnPeriodo(negocioId, fechaInicio, fechaFin, metodoPago = null) {
   let query = supabase
     .from('ventas')
-    .select('*, usuarios(nombre)')
+    .select('*')
     .eq('negocio_id', negocioId)
     .gte('fecha', fechaInicio)
     .lte('fecha', fechaFin)
@@ -230,10 +269,31 @@ async ventasEnPeriodo(negocioId, fechaInicio, fechaFin, metodoPago = null) {
     query = query.eq('metodo_pago', metodoPago)
   }
 
-  const { data, error } = await query
+  const { data: ventas, error } = await query
 
   if (error) throw error
-  return data || []
+
+  // Obtener nombres de usuarios por separado
+  if (ventas && ventas.length > 0) {
+    const usuariosIds = [...new Set(ventas.map(v => v.usuario_id))]
+    const { data: usuarios } = await supabase
+      .from('usuarios')
+      .select('id, nombre')
+      .in('id', usuariosIds)
+
+    // Mapear nombres a las ventas
+    const usuariosMap = {}
+    usuarios?.forEach(u => {
+      usuariosMap[u.id] = u
+    })
+
+    return ventas.map(venta => ({
+      ...venta,
+      usuarios: usuariosMap[venta.usuario_id]
+    }))
+  }
+
+  return ventas || []
 },
 
 // Totales de ventas en período
@@ -267,26 +327,45 @@ async totalesEnPeriodo(negocioId, fechaInicio, fechaFin) {
 
 // Productos más vendidos en período
 async productosMasVendidosPeriodo(negocioId, fechaInicio, fechaFin, limite = 10) {
-  const { data } = await supabase
+  // PASO 1: Obtener IDs de ventas del negocio en el período
+  const { data: ventas } = await supabase
+    .from('ventas')
+    .select('id')
+    .eq('negocio_id', negocioId)
+    .gte('fecha', fechaInicio)
+    .lte('fecha', fechaFin)
+
+  if (!ventas || ventas.length === 0) return []
+
+  const ventasIds = ventas.map(v => v.id)
+
+  // PASO 2: Obtener items de esas ventas
+  const { data: items } = await supabase
     .from('ventas_items')
-    .select(`
-      cantidad,
-      producto_id,
-      productos (nombre),
-      ventas!inner (negocio_id, fecha)
-    `)
-    .eq('ventas.negocio_id', negocioId)
-    .gte('ventas.fecha', fechaInicio)
-    .lte('ventas.fecha', fechaFin)
+    .select('cantidad, producto_id')
+    .in('venta_id', ventasIds)
     .not('producto_id', 'is', null)
 
-  if (!data || data.length === 0) return []
+  if (!items || items.length === 0) return []
+
+  // PASO 3: Obtener nombres de productos
+  const productosIds = [...new Set(items.map(i => i.producto_id))]
+  const { data: productos } = await supabase
+    .from('productos')
+    .select('id, nombre')
+    .in('id', productosIds)
+
+  // Crear mapa de productos
+  const productosMap = {}
+  productos?.forEach(p => {
+    productosMap[p.id] = p.nombre
+  })
 
   const ventasPorProducto = {}
   
-  for (const item of data) {
-    if (item.productos && item.productos.nombre) {
-      const nombre = item.productos.nombre
+  for (const item of items) {
+    const nombre = productosMap[item.producto_id]
+    if (nombre) {
       if (!ventasPorProducto[nombre]) {
         ventasPorProducto[nombre] = 0
       }

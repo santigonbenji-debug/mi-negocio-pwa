@@ -19,19 +19,28 @@ export const Layout = ({ children }) => {
   }, [user])
 
   const cargarDatosUsuario = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select(`
-          *,
-          negocios (
-            nombre
-          )
-        `)
-        .eq('id', user.id)
-        .single()
+  try {
+    const { data: userData, error: userError } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('id', user.id)
+      .single()
 
-      if (error) throw error
+    if (userError) throw userError
+
+    // Obtener nombre del negocio por separado
+    const { data: negocioData } = await supabase
+      .from('negocios')
+      .select('nombre')
+      .eq('id', userData.negocio_id)
+      .single()
+
+    const data = {
+      ...userData,
+      negocios: negocioData
+    }
+
+      
       setUserData(data)
     } catch (error) {
       console.error('Error al cargar datos del usuario:', error)

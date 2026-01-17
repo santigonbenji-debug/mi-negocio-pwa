@@ -87,27 +87,39 @@ export const usuariosService = {
   },
 
   async toggleActivo(userId, activo) {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('usuarios')
       .update({ activo })
       .eq('id', userId)
-      .select()
-      .single()
 
     if (error) throw error
+
+    // Obtener el usuario actualizado
+    const { data } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
     return data
   },
  
 
   async cambiarRol(userId, nuevoRol) {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('usuarios')
       .update({ rol: nuevoRol })
       .eq('id', userId)
-      .select()
-      .single()
 
     if (error) throw error
+
+    // Obtener el usuario actualizado
+    const { data } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
     return data
   },
    async eliminar(userId) {

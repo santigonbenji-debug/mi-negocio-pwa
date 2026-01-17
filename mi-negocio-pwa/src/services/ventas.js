@@ -89,7 +89,7 @@ async registrarFiado(negocioId, clienteNombre, monto, ventaId) {
     .select('id')
     .eq('negocio_id', negocioId)
     .eq('cliente_nombre', clienteNombre)
-    .single()
+   .maybeSingle()
 
   let fiadoId
 
@@ -139,14 +139,56 @@ async registrarFiado(negocioId, clienteNombre, monto, ventaId) {
 
   // Obtener detalles de una venta
   async obtenerDetalles(ventaId) {
-    const { data, error } = await supabase
+    // PASO 1: Obtener la venta
+    const { data: venta, error: ventaError } = await supabase
       .from('ventas')
-      .select('*, ventas_items(*)')  // ✅ SOLO ventas_items (esta relación es clara)
+      .select('*')
       .eq('id', ventaId)
       .single()
 
-    if (error) throw error
-    return data
+    if (ventaError) throw ventaError
+
+    // PASO 2: Obtener items de la venta
+    const { data: items, error: itemsError } = await supabase
+      .from('ventas_items')
+      .select('*')
+      .eq('venta_id', ventaId)
+
+    if (itemsError) throw itemsError
+
+    // PASO 3: Obtener nombres de productos para los items
+    const productosIds = items
+      .filter(item => item.producto_id)
+      .map(item => item.producto_id)
+
+    let productosMap = {}
+    if (productosIds.length > 0) {
+      const { data: productos } = await supabase
+        .from('productos')
+        .select('id, nombre')
+        .in('id', productosIds)
+
+      productos?.forEach(p => {
+        productosMap[p.id] = p
+      })
+    }
+
+    // PASO 4: Obtener nombre del usuario
+    const { data: usuario } = await supabase
+      .from('usuarios')
+      .select('nombre')
+      .eq('id', venta.usuario_id)
+      .single()
+
+    // Combinar todo
+    return {
+      ...venta,
+      usuarios: usuario,
+      ventas_items: items.map(item => ({
+        ...item,
+        productos: item.producto_id ? productosMap[item.producto_id] : null
+      }))
+    }
   },
 
   // Obtener totales del día
