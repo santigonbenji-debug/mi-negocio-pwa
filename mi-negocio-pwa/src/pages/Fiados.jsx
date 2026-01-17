@@ -213,14 +213,12 @@ export const Fiados = () => {
 
     return (
       <Card
-        key={cliente.id}
-        className="hover:shadow-xl transition-shadow"
-      >
-        <div className="flex items-start justify-between mb-3">
-          <div 
-            className="flex-1 cursor-pointer"
-            onClick={() => handleVerDetalle(cliente)}
-          >
+  key={cliente.id}
+  className="hover:shadow-xl transition-shadow cursor-pointer"
+  onClick={() => handleVerDetalle(cliente)}
+>
+  <div className="flex items-start justify-between mb-3">
+    <div className="flex-1">
             <h3 className="font-bold text-lg text-gray-800">
               {cliente.cliente_nombre}
             </h3>

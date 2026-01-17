@@ -1,0 +1,2 @@
+src\services\reportes.js:    .select('*, usuarios(nombre)')
+src\services\reportes.js:    .select('*, usuarios(nombre)')

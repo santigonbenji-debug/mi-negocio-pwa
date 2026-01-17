@@ -114,29 +114,16 @@ export const fiadosService = {
     if (error) throw error
   },
  // Obtener movimientos de un cliente CON DETALLES DE VENTA
+// Obtener movimientos de un cliente (SIN EMBEDS)
 async obtenerMovimientos(fiadoId) {
-  const { data, error } = await supabase
+  const { data: movimientos, error } = await supabase
     .from('fiados_movimientos')
-    .select(`
-      *,
-      ventas (
-        id,
-        total,
-        tipo,
-        fecha,
-        ventas_items (
-          cantidad,
-          precio_unitario,
-          descripcion_momento_venta,
-          productos (nombre)
-        )
-      )
-    `)
+    .select('*')
     .eq('fiado_id', fiadoId)
     .order('fecha', { ascending: false })
-  
+
   if (error) throw error
-  return data || []
+  return movimientos || []
 },
 
   // Obtener estadísticas
