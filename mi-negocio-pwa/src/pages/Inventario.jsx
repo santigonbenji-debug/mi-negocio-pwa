@@ -31,7 +31,8 @@ export const Inventario = () => {
   buscarProductos, 
   agregarProducto,
   actualizarProducto,
-  agregarStock 
+  agregarStock,
+  desactivarProducto      // ← AGREGAR ESTA LÍNEA
 } = useProductosStore()
   
   const [modalAgregar, setModalAgregar] = useState(false)
@@ -45,6 +46,15 @@ const [productoEditar, setProductoEditar] = useState(null)
   const [stock, setStock] = useState('')
   const [stockMinimo, setStockMinimo] = useState('5')
   const [codigoBarras, setCodigoBarras] = useState('')
+  const [esPorKg, setEsPorKg] = useState(false)
+
+  // Resetear stock cuando se marca KG
+  useEffect(() => {
+    if (esPorKg) {
+      setStock('0')
+      setStockMinimo('0')
+    }
+  }, [esPorKg])
 
   // Cargar productos al montar
  useEffect(() => {
@@ -70,9 +80,10 @@ const [productoEditar, setProductoEditar] = useState(null)
     await agregarProducto(user.negocio_id, {
       nombre,
       precio: parseFloat(precio),
-      stock_actual: parseInt(stock),
-      stock_minimo: parseInt(stockMinimo),
-      codigo_barras: codigoBarras || null
+      stock_actual: esPorKg ? 0 : parseInt(stock),
+      stock_minimo: esPorKg ? 0 : parseInt(stockMinimo),
+      codigo_barras: codigoBarras || null,
+      es_por_kg: esPorKg
     })
       toast.success('✅ Producto agregado')
       setModalAgregar(false)
@@ -82,6 +93,7 @@ const [productoEditar, setProductoEditar] = useState(null)
       setStock('')
       setStockMinimo('5')
       setCodigoBarras('')
+      setEsPorKg(false)
     } catch (error) {
       toast.error(error.message || 'Error al agregar producto')
     }
@@ -119,14 +131,10 @@ const abrirModalEditar = (producto) => {
 
 const handleEliminar = async (id) => {
   if (!window.confirm('¿Estás seguro de eliminar este producto?')) return
-  
+
   try {
-    await actualizarProducto(id, { activo: false })
+    await desactivarProducto(id)
     toast.success('Producto eliminado')
-    // Recargar productos
-    if (user?.negocio_id) {
-      cargarProductos(user.negocio_id)
-    }
   } catch (error) {
     toast.error('Error al eliminar producto')
   }
@@ -221,12 +229,19 @@ const handleEliminar = async (id) => {
                   className="hover:shadow-xl transition-shadow"
                 >
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-bold text-lg text-gray-800">
-                      {producto.nombre}
-                    </h3>
-                    {stockBajo && (
-                      <Badge variant="danger">⚠ Stock bajo</Badge>
-                    )}
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg text-gray-800">
+                        {producto.nombre}
+                      </h3>
+                    </div>
+                    <div className="flex gap-2">
+                      {producto.es_por_kg && (
+                        <Badge variant="info">⚖️ KG</Badge>
+                      )}
+                      {stockBajo && (
+                        <Badge variant="danger">⚠ Stock bajo</Badge>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="space-y-2 mb-4">
@@ -332,6 +347,7 @@ const handleEliminar = async (id) => {
             onChange={e => setStock(e.target.value)}
             placeholder="0"
             required
+            disabled={esPorKg}
           />
           <Input
             label="Stock mínimo (para alertas)"
@@ -339,6 +355,7 @@ const handleEliminar = async (id) => {
             value={stockMinimo}
             onChange={e => setStockMinimo(e.target.value)}
             placeholder="5"
+            disabled={esPorKg}
           />
           <Input
             label="Código de barras (opcional)"
@@ -346,6 +363,21 @@ const handleEliminar = async (id) => {
             onChange={e => setCodigoBarras(e.target.value)}
             placeholder="123456789"
           />
+          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+            <input
+              type="checkbox"
+              id="esPorKg"
+              checked={esPorKg}
+              onChange={(e) => setEsPorKg(e.target.checked)}
+              className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <label htmlFor="esPorKg" className="cursor-pointer">
+              <span className="font-semibold">📦 Producto por KG</span>
+              <p className="text-sm text-gray-600">
+                Pan, milanesas, verduras, chorizos, etc.
+              </p>
+            </label>
+          </div>
           <Button type="submit" className="w-full">
             Agregar Producto
           </Button>

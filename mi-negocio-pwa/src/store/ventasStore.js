@@ -56,7 +56,8 @@ export const useVentasStore = create((set, get) => ({
           nombre: producto.nombre,
           precio_unitario: producto.precio,
           cantidad,
-          stock_disponible: producto.stock_actual
+          stock_disponible: producto.stock_actual,
+          es_por_kg: producto.es_por_kg || false
         }]
       })
     }
@@ -118,9 +119,9 @@ export const useVentasStore = create((set, get) => ({
 
     const total = get().calcularTotal()
 
-    // Validar stock antes de procesar
+    // Validar stock antes de procesar (excepto productos por KG)
     for (const item of carrito) {
-      if (item.producto_id && item.stock_disponible !== null) {
+      if (item.producto_id && item.stock_disponible !== null && !item.es_por_kg) {
         if (item.cantidad > item.stock_disponible) {
           throw new Error(`Stock insuficiente para ${item.nombre}. Disponible: ${item.stock_disponible}`)
         }

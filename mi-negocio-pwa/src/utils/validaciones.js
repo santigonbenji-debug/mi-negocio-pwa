@@ -34,7 +34,23 @@ export const schemas = {
       .int()
       .min(0, "El stock mínimo no puede ser negativo")
       .default(5),
-    codigo_barras: z.string().nullable().optional()
+    codigo_barras: z.string().nullable().optional(),
+    es_por_kg: z.boolean().default(false)
+  }),
+
+  // Item de venta (para carrito)
+  ventaItem: z.object({
+    producto_id: z.string().uuid().nullable(),
+    cantidad: z.number()
+      .positive("La cantidad debe ser mayor a 0")
+      .refine(val => {
+        // Si es entero, debe ser al menos 1
+        // Si es decimal, debe tener máximo 2 decimales
+        const decimales = (val.toString().split('.')[1] || '').length
+        return decimales <= 2
+      }, "La cantidad debe tener máximo 2 decimales"),
+    precio_unitario: z.number().positive("El precio debe ser mayor a 0"),
+    nombre: z.string().min(1)
   }),
 
   // Venta

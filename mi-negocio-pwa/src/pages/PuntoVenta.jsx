@@ -69,6 +69,11 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
   const [precioRapido, setPrecioRapido] = useState('')
   const [cantidadRapido, setCantidadRapido] = useState('1')
 
+  // Modal cantidad para productos por KG
+  const [modalCantidadKg, setModalCantidadKg] = useState(false)
+  const [productoKgSeleccionado, setProductoKgSeleccionado] = useState(null)
+  const [cantidadKg, setCantidadKg] = useState('')
+
   // Cargar datos al montar
   useEffect(() => {
   if (user?.negocio_id) {
@@ -94,14 +99,43 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
 
   // Agregar producto
   const handleAgregarProducto = (producto) => {
-    if (producto.stock_actual <= 0) {
+    if (producto.stock_actual <= 0 && !producto.es_por_kg) {
       toast.error('Producto sin stock')
       return
     }
-    agregarAlCarrito(producto, 1)
-    setBusqueda('')
-    setProductosFiltrados([])
-    toast.success(`${producto.nombre} agregado`)
+
+    // Si es por KG, abrir modal para pedir cantidad
+    if (producto.es_por_kg) {
+      setProductoKgSeleccionado(producto)
+      setModalCantidadKg(true)
+      setBusqueda('')
+      setProductosFiltrados([])
+    } else {
+      // Si es normal, agregar directo con cantidad 1
+      agregarAlCarrito(producto, 1)
+      setBusqueda('')
+      setProductosFiltrados([])
+      toast.success(`${producto.nombre} agregado`)
+    }
+  }
+
+  // Confirmar cantidad para productos por KG
+  const handleConfirmarCantidadKg = (e) => {
+    e.preventDefault()
+    const cantidadEnKg = parseFloat(cantidadKg) / 1000
+
+    if (isNaN(cantidadEnKg) || cantidadEnKg <= 0) {
+      toast.error('Ingresa una cantidad válida')
+      return
+    }
+
+    agregarAlCarrito(productoKgSeleccionado, cantidadEnKg)
+    toast.success(`${cantidadKg}g de ${productoKgSeleccionado.nombre} agregado`)
+
+    // Limpiar y cerrar
+    setModalCantidadKg(false)
+    setProductoKgSeleccionado(null)
+    setCantidadKg('')
   }
 
   // Venta rápida
@@ -240,7 +274,10 @@ const handleVerDetalle = (ventaId) => {
                     {carrito.map((item, index) => (
                       <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-800">{item.nombre}</p>
+                          <p className="font-semibold text-gray-800">
+                            {item.nombre}
+                            {item.es_por_kg && ` (${item.cantidad.toFixed(2)} kg)`}
+                          </p>
                           <p className="text-sm text-gray-600">
                             ${item.precio_unitario.toFixed(2)} x {item.cantidad}
                           </p>
@@ -552,6 +589,53 @@ const handleVerDetalle = (ventaId) => {
             {procesando ? 'Procesando...' : 'Confirmar Venta'}
           </Button>
         </form>
+      </Modal>
+
+      {/* Modal Cantidad KG */}
+      <Modal
+        isOpen={modalCantidadKg}
+        onClose={() => {
+          setModalCantidadKg(false)
+          setProductoKgSeleccionado(null)
+          setCantidadKg('')
+        }}
+        title={productoKgSeleccionado ? `¿Cuántos gramos de ${productoKgSeleccionado.nombre}?` : 'Cantidad en gramos'}
+      >
+        {productoKgSeleccionado && (
+          <form onSubmit={handleConfirmarCantidadKg} className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded-lg text-center">
+              <p className="text-sm text-gray-600">Precio por KG</p>
+              <p className="text-3xl font-bold text-primary">
+                ${parseFloat(productoKgSeleccionado.precio).toFixed(2)}
+              </p>
+            </div>
+
+            <Input
+              label="Cantidad en gramos *"
+              type="number"
+              step="1"
+              min="1"
+              value={cantidadKg}
+              onChange={e => setCantidadKg(e.target.value)}
+              placeholder="Ej: 250"
+              required
+              autoFocus
+            />
+
+            {cantidadKg && !isNaN(parseFloat(cantidadKg)) && parseFloat(cantidadKg) > 0 && (
+              <div className="bg-blue-50 p-3 rounded-lg text-center">
+                <p className="text-sm text-gray-600">Total a pagar</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  ${((parseFloat(cantidadKg) / 1000) * productoKgSeleccionado.precio).toFixed(2)}
+                </p>
+              </div>
+            )}
+
+            <Button type="submit" className="w-full">
+              Agregar al Carrito
+            </Button>
+          </form>
+        )}
       </Modal>
 
       {/* Modal Detalle Venta */}
