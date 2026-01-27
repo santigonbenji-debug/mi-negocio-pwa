@@ -22,6 +22,8 @@ import { format } from 'date-fns'
 import { exportarVentas } from '../utils/exportVentas'
 import { es } from 'date-fns/locale'
 import { DetalleVentaModal } from '../components/ventas/DetalleVentaModal'
+import { DetalleCajaModal } from '../components/caja/DetalleCajaModal'
+
 export const Reportes = () => {
   const { user } = useAuthStore()
   const {
@@ -393,73 +395,12 @@ const handleVerDetalle = (ventaId) => {
         )}
 
         {/* Modal detalle de caja */}
-        <Modal
+        <DetalleCajaModal
           isOpen={!!cajaSeleccionada}
           onClose={cerrarDetalleCaja}
-          title="Detalle de Caja"
-          maxWidth="max-w-3xl"
-        >
-          {cajaSeleccionada && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Fecha Apertura</p>
-                  <p className="font-semibold">
-                    {format(new Date(cajaSeleccionada.fecha_apertura), "dd/MM/yyyy HH:mm", { locale: es })}
-                  </p>
-                </div>
-                {cajaSeleccionada.fecha_cierre && (
-                  <div>
-                    <p className="text-sm text-gray-600">Fecha Cierre</p>
-                    <p className="font-semibold">
-                      {format(new Date(cajaSeleccionada.fecha_cierre), "dd/MM/yyyy HH:mm", { locale: es })}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm text-gray-600">Monto Inicial</p>
-                  <p className="text-xl font-bold">${parseFloat(cajaSeleccionada.monto_inicial).toFixed(2)}</p>
-                </div>
-                {cajaSeleccionada.monto_esperado && (
-                  <div>
-                    <p className="text-sm text-gray-600">Monto Esperado</p>
-                    <p className="text-xl font-bold">${parseFloat(cajaSeleccionada.monto_esperado).toFixed(2)}</p>
-                  </div>
-                )}
-                {cajaSeleccionada.monto_real && (
-                  <div>
-                    <p className="text-sm text-gray-600">Monto Real</p>
-                    <p className="text-xl font-bold">${parseFloat(cajaSeleccionada.monto_real).toFixed(2)}</p>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <h4 className="font-bold text-lg mb-3">
-                  Movimientos ({movimientosCajaSeleccionada.length})
-                </h4>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {movimientosCajaSeleccionada.map(mov => (
-                    <div key={mov.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <p className="font-semibold">{mov.concepto}</p>
-                        <p className="text-xs text-gray-500">
-                          {format(new Date(mov.fecha), "HH:mm", { locale: es })}
-                        </p>
-                      </div>
-                      <Badge variant={mov.tipo === 'ingreso' ? 'success' : 'danger'}>
-                        {mov.tipo === 'ingreso' ? '+' : '-'}${parseFloat(mov.monto).toFixed(2)}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </Modal>
+          caja={cajaSeleccionada}
+          movimientos={movimientosCajaSeleccionada}
+        />
 
         {/* Modal Detalle Venta */}
         <DetalleVentaModal

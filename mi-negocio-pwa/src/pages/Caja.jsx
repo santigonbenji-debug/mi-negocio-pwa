@@ -24,6 +24,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Layout } from '../components/layout/Layout'
 import { DetalleVentaModal } from '../components/ventas/DetalleVentaModal'
+import { DetalleCajaModal } from '../components/caja/DetalleCajaModal'
 import { exportarCaja } from '../utils/exportCaja'
 import { cajaService } from '../services/caja'
 export const Caja = () => {
@@ -47,6 +48,10 @@ export const Caja = () => {
  const [mostrarHistorial, setMostrarHistorial] = useState(false)
 const [modalDetalleVenta, setModalDetalleVenta] = useState(false)
 const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
+
+// Modal detalle caja del historial
+const [cajaSeleccionada, setCajaSeleccionada] = useState(null)
+const [movimientosCajaSeleccionada, setMovimientosCajaSeleccionada] = useState([])
 
 // Form Abrir Caja
   const [montoInicial, setMontoInicial] = useState('')
@@ -148,6 +153,24 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
       console.error(error)
     }
   }
+
+  // Ver detalles de caja del historial
+  const verDetallesCaja = async (caja) => {
+    try {
+      setCajaSeleccionada(caja)
+      const movimientos = await cajaService.obtenerMovimientos(caja.id)
+      setMovimientosCajaSeleccionada(movimientos)
+    } catch (error) {
+      console.error('Error al cargar movimientos:', error)
+      toast.error('Error al cargar detalles de la caja')
+    }
+  }
+
+  const cerrarDetalleCaja = () => {
+    setCajaSeleccionada(null)
+    setMovimientosCajaSeleccionada([])
+  }
+
   // Calcular totales
   const totales = {
     ingresos: movimientos
@@ -194,7 +217,12 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
                 </div>
                 <div className="space-y-3">
                   {historial.slice(0, 5).map(caja => (
-                    <Card key={caja.id} padding="p-4">
+                    <Card
+                      key={caja.id}
+                      padding="p-4"
+                      className="cursor-pointer hover:shadow-lg transition-shadow"
+                      onClick={() => verDetallesCaja(caja)}
+                    >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <p className="font-semibold text-gray-800">
@@ -218,7 +246,10 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
                           <Button
                             variant="secondary"
                             className="text-sm py-2 px-4"
-                            onClick={() => handleExportarCaja(caja)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleExportarCaja(caja)
+                            }}
                           >
                             📥 Exportar
                           </Button>
@@ -461,6 +492,14 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
           setVentaSeleccionada(null)
         }}
         ventaId={ventaSeleccionada}
+      />
+
+      {/* Modal Detalle Caja Historial */}
+      <DetalleCajaModal
+        isOpen={!!cajaSeleccionada}
+        onClose={cerrarDetalleCaja}
+        caja={cajaSeleccionada}
+        movimientos={movimientosCajaSeleccionada}
       />
     </div>
     </Layout>
