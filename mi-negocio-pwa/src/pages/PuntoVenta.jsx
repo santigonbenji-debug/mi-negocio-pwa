@@ -320,7 +320,7 @@ const handleVerDetalle = (ventaId) => {
                       <span className="font-bold text-green-600">${totalesDelDia.efectivo.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Tarjeta:</span>
+                      <span>Transferencia:</span>
                       <span className="font-bold text-blue-600">${totalesDelDia.tarjeta.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
@@ -467,7 +467,7 @@ const handleVerDetalle = (ventaId) => {
                   onChange={e => setMetodoPago(e.target.value)}
                   className="mr-3"
                 />
-                <span className="font-semibold">💳 Tarjeta</span>
+                <span className="font-semibold">💳 Transferencia</span>
               </label>
               <label className="flex items-center p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50">
                 <input

@@ -73,7 +73,7 @@ export const DetalleVentaModal = ({ isOpen, onClose, ventaId }) => {
                   venta.metodo_pago === 'tarjeta' ? 'default' : 'warning'
                 }>
                   {venta.metodo_pago === 'efectivo' ? '💵 Efectivo' :
-                   venta.metodo_pago === 'tarjeta' ? '💳 Tarjeta' : '📝 Fiado'}
+                   venta.metodo_pago === 'tarjeta' ? '💳 Transferencia' : '📝 Fiado'}
                 </Badge>
               </div>
               {venta.cliente_nombre && (

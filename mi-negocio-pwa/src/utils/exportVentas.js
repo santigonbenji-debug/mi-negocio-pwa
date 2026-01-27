@@ -212,7 +212,7 @@ export const exportarVentas = (ventas, fechaInicio, fechaFin) => {
   ])
 
   data.push([
-    { v: `Tarjeta (${porcentajeTarjeta}%):`, t: 's', s: { ...resumenStyle, font: { bold: true, color: { rgb: '007BFF' } } } },
+    { v: `Transferencia (${porcentajeTarjeta}%):`, t: 's', s: { ...resumenStyle, font: { bold: true, color: { rgb: '007BFF' } } } },
     { v: tarjeta, t: 'n', z: '"$"#,##0.00', s: resumenStyle }
   ])
 

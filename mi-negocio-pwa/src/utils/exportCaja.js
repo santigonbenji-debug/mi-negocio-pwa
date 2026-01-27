@@ -121,7 +121,7 @@ export const exportarCaja = async (caja, ventas, movimientos) => {
   ])
 
   resumenData.push([
-    { v: 'Tarjeta:', t: 's', s: { ...infoStyle, font: { bold: true, color: { rgb: '007BFF' } } } },
+    { v: 'Transferencia:', t: 's', s: { ...infoStyle, font: { bold: true, color: { rgb: '007BFF' } } } },
     { v: caja.tarjeta || 0, t: 'n', z: '"$"#,##0.00', s: infoStyle }
   ])
 

@@ -196,7 +196,7 @@ async productosMasVendidos(negocioId, limite = 5) {
 
     return [
       { metodo: 'Efectivo', total: totales.efectivo },
-      { metodo: 'Tarjeta', total: totales.tarjeta },
+      { metodo: 'Transferencia', total: totales.tarjeta },
       { metodo: 'Fiado', total: totales.fiado }
     ]
 

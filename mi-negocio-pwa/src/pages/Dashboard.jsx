@@ -251,7 +251,7 @@ export const Dashboard = () => {
                       
                       const colores = {
                         'Efectivo': { bg: 'bg-green-500', text: 'text-green-600' },
-                        'Tarjeta': { bg: 'bg-blue-500', text: 'text-blue-600' },
+                        'Transferencia': { bg: 'bg-blue-500', text: 'text-blue-600' },
                         'Fiado': { bg: 'bg-orange-500', text: 'text-orange-600' }
                       }
                       

@@ -232,7 +232,7 @@ const handleVerDetalle = (ventaId) => {
                   >
                     <option value="">Todos los métodos</option>
                     <option value="efectivo">Efectivo</option>
-                    <option value="tarjeta">Tarjeta</option>
+                    <option value="tarjeta">Transferencia</option>
                     <option value="fiado">Fiado</option>
                   </select>
                 </div>
@@ -249,7 +249,7 @@ const handleVerDetalle = (ventaId) => {
                       <p className="text-2xl font-bold">${totales.efectivo.toFixed(2)}</p>
                     </Card>
                     <Card padding="p-4" className="border-l-4 border-blue-500">
-                      <p className="text-sm text-gray-600">Tarjeta</p>
+                      <p className="text-sm text-gray-600">Transferencia</p>
                       <p className="text-2xl font-bold">${totales.tarjeta.toFixed(2)}</p>
                     </Card>
                     <Card padding="p-4" className="border-l-4 border-orange-500">
