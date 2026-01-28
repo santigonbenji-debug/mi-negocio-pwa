@@ -47,6 +47,7 @@ const [productoEditar, setProductoEditar] = useState(null)
   const [stockMinimo, setStockMinimo] = useState('5')
   const [codigoBarras, setCodigoBarras] = useState('')
   const [esPorKg, setEsPorKg] = useState(false)
+  const [filtroTipo, setFiltroTipo] = useState('todos')
 
   // Resetear stock cuando se marca KG
   useEffect(() => {
@@ -197,6 +198,29 @@ const handleEliminar = async (id) => {
     onChange={e => handleBusqueda(e.target.value)}
   />
 </div>
+
+{/* Filtros */}
+<div className="flex gap-2 mb-6">
+  <button
+    onClick={() => setFiltroTipo('todos')}
+    className={`px-4 py-2 rounded-lg ${filtroTipo === 'todos' ? 'bg-primary text-white' : 'bg-gray-200'}`}
+  >
+    Todos ({productos.length})
+  </button>
+  <button
+    onClick={() => setFiltroTipo('unidad')}
+    className={`px-4 py-2 rounded-lg ${filtroTipo === 'unidad' ? 'bg-primary text-white' : 'bg-gray-200'}`}
+  >
+    Por Unidad ({productos.filter(p => !p.es_por_kg).length})
+  </button>
+  <button
+    onClick={() => setFiltroTipo('kg')}
+    className={`px-4 py-2 rounded-lg ${filtroTipo === 'kg' ? 'bg-primary text-white' : 'bg-gray-200'}`}
+  >
+    Por KG ({productos.filter(p => p.es_por_kg).length})
+  </button>
+</div>
+
       {/* Contenido */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {cargando ? (
@@ -221,7 +245,11 @@ const handleEliminar = async (id) => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {productos.map(producto => {
+            {productos.filter(p => {
+              if (filtroTipo === 'kg') return p.es_por_kg
+              if (filtroTipo === 'unidad') return !p.es_por_kg
+              return true
+            }).map(producto => {
               const stockBajo = producto.stock_actual <= producto.stock_minimo
               return (
                 <Card 
