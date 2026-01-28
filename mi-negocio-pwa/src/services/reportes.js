@@ -412,7 +412,63 @@ async ventasPorDiaPeriodo(negocioId, fechaInicio, fechaFin) {
       total: Math.round(total * 100) / 100
     }))
     .sort((a, b) => a.fecha.localeCompare(b.fecha))
+},
+
+// Ventas de productos por KG del día
+async ventasKgHoy(negocioId) {
+  const hoy = new Date().toISOString().split('T')[0]
+
+  // Obtener ventas de hoy
+  const { data: ventas } = await supabase
+    .from('ventas')
+    .select('id')
+    .eq('negocio_id', negocioId)
+    .gte('fecha', hoy)
+
+  if (!ventas || ventas.length === 0) return []
+
+  const ventasIds = ventas.map(v => v.id)
+
+  // Obtener items de esas ventas
+  const { data: items } = await supabase
+    .from('ventas_items')
+    .select('cantidad, producto_id')
+    .in('venta_id', ventasIds)
+    .not('producto_id', 'is', null)
+
+  if (!items || items.length === 0) return []
+
+  // Obtener productos que son por KG
+  const productosIds = [...new Set(items.map(i => i.producto_id))]
+  const { data: productos } = await supabase
+    .from('productos')
+    .select('id, nombre, es_por_kg')
+    .in('id', productosIds)
+    .eq('es_por_kg', true)
+
+  if (!productos || productos.length === 0) return []
+
+  // Crear mapa de productos por KG
+  const productosMap = {}
+  productos.forEach(p => {
+    productosMap[p.id] = p.nombre
+  })
+
+  // Agrupar ventas por producto
+  const agrupado = {}
+  items.forEach(item => {
+    const nombre = productosMap[item.producto_id]
+    if (nombre) {
+      agrupado[nombre] = (agrupado[nombre] || 0) + parseFloat(item.cantidad)
+    }
+  })
+
+  return Object.entries(agrupado)
+    .map(([nombre, kg]) => ({
+      nombre,
+      kg: parseFloat(kg.toFixed(2))
+    }))
+    .sort((a, b) => b.kg - a.kg)
 }
 
-  
 }

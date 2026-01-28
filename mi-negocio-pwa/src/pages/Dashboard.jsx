@@ -29,6 +29,7 @@ export const Dashboard = () => {
     ventasPorDia,
     productosMasVendidos,
     ventasPorMetodoPago,
+    ventasKgHoy,
     cargando,
     cargarDatos
   } = useDashboardStore()
@@ -280,6 +281,21 @@ export const Dashboard = () => {
                 </Card>
               )}
             </div>
+
+            {/* Ventas por KG Hoy */}
+            {ventasKgHoy.length > 0 && (
+              <Card>
+                <h3 className="text-xl font-bold text-gray-800 mb-4">⚖️ Ventas por KG Hoy</h3>
+                <div className="space-y-2">
+                  {ventasKgHoy.map(item => (
+                    <div key={item.nombre} className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-700">{item.nombre}</span>
+                      <span className="font-bold text-primary">{item.kg} kg</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
 
             {/* Alertas */}
             {resumen && (resumen.productosStockBajo > 0 || resumen.clientesConDeuda > 0) && (

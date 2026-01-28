@@ -18,17 +18,19 @@ export const useDashboardStore = create((set, get) => ({
   ventasPorDia: [],
   productosMasVendidos: [],
   ventasPorMetodoPago: [],
+  ventasKgHoy: [],
   cargando: false,
 
   // Cargar todos los datos del dashboard
   cargarDatos: async (negocioId) => {
     set({ cargando: true })
     try {
-      const [resumen, ventasPorDia, productosMasVendidos, ventasPorMetodoPago] = await Promise.all([
+      const [resumen, ventasPorDia, productosMasVendidos, ventasPorMetodoPago, ventasKgHoy] = await Promise.all([
         reportesService.resumenGeneral(negocioId),
         reportesService.ventasPorDia(negocioId, 7),
         reportesService.productosMasVendidos(negocioId, 5),
-        reportesService.ventasPorMetodoPago(negocioId)
+        reportesService.ventasPorMetodoPago(negocioId),
+        reportesService.ventasKgHoy(negocioId)
       ])
 
       set({
@@ -36,6 +38,7 @@ export const useDashboardStore = create((set, get) => ({
         ventasPorDia,
         productosMasVendidos,
         ventasPorMetodoPago,
+        ventasKgHoy,
         cargando: false
       })
     } catch (error) {
@@ -60,7 +63,8 @@ export const useDashboardStore = create((set, get) => ({
       resumen: null,
       ventasPorDia: [],
       productosMasVendidos: [],
-      ventasPorMetodoPago: []
+      ventasPorMetodoPago: [],
+      ventasKgHoy: []
     })
   }
 }))
