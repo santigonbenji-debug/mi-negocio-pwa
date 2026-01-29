@@ -87,9 +87,17 @@ export const useProductosStore = create((set, get) => ({
     })
   },
 
-  // Desactivar producto
+  // Desactivar producto (soft delete)
   desactivarProducto: async (id) => {
     await productosService.desactivar(id)
+    set({
+      productos: get().productos.filter(p => p.id !== id)
+    })
+  },
+
+  // Eliminar producto permanentemente de la BD
+  eliminarProducto: async (id) => {
+    await productosService.eliminar(id)
     set({
       productos: get().productos.filter(p => p.id !== id)
     })

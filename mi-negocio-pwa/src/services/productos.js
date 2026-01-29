@@ -122,6 +122,16 @@ export const productosService = {
     if (error) throw error
   },
 
+  // Eliminar permanentemente de la BD
+  async eliminar(id) {
+    const { error } = await supabase
+      .from('productos')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+  },
+
   // Productos con stock bajo
   async stockBajo(negocioId) {
     const { data, error } = await supabase
