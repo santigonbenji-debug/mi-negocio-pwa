@@ -39,7 +39,6 @@ export const useAuthStore = create((set) => ({
           activo: userData?.activo
         }
 
-        console.log('Usuario cargado:', userCompleto)
         set({ user: userCompleto, loading: false })
       } else {
         set({ user: null, loading: false })
@@ -78,7 +77,6 @@ export const useAuthStore = create((set) => ({
       activo: userData?.activo
     }
 
-    console.log('Login exitoso:', userCompleto)
     set({ user: userCompleto })
     return data
   },
@@ -97,8 +95,6 @@ export const useAuthStore = create((set) => ({
       if (authError) throw authError
       if (!authData.user) throw new Error('No se pudo crear el usuario')
 
-      console.log('✅ Usuario creado en Auth:', authData.user.id)
-
       const { data, error } = await supabase.rpc('registrar_usuario_completo', {
         p_user_id: authData.user.id,
         p_email: email,
@@ -107,16 +103,12 @@ export const useAuthStore = create((set) => ({
       })
 
       if (error) {
-        console.error('❌ Error en función de registro:', error)
         throw new Error('Error al completar el registro')
       }
-
-      console.log('✅ Registro completado:', data)
 
       set({ user: authData.user })
       return authData
     } catch (error) {
-      console.error('❌ Error en registro:', error)
       throw error
     }
   },

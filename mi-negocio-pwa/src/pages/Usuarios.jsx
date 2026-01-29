@@ -11,6 +11,8 @@ import { Badge } from '../components/common/Badge'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { HelpButton } from '../components/common/HelpButton'
+import { SectionGuide } from '../components/common/SectionGuide'
 
 export const Usuarios = () => {
   const { user } = useAuthStore()
@@ -21,6 +23,14 @@ export const Usuarios = () => {
   const [modalWhatsApp, setModalWhatsApp] = useState(false)
   const [mensajeWhatsApp, setMensajeWhatsApp] = useState('')
   const [usuarioCreado, setUsuarioCreado] = useState(null)
+  const [modalAyuda, setModalAyuda] = useState(false)
+
+  const pasosAyudaUsuarios = [
+    { title: '👑 Roles', description: 'Los Administradores ven todo. Los Empleados solo pueden vender y gestionar la caja.' },
+    { title: '➕ Crear Usuario', description: 'Define nombre y email. El sistema te dará una contraseña temporal para que se la envíes.' },
+    { title: '📱 WhatsApp', description: 'Al crear un usuario, puedes enviarle sus accesos directamente por WhatsApp con un solo clic.' },
+    { title: '🚫 Desactivar', description: 'Si un empleado ya no trabaja contigo, puedes desactivar su cuenta sin borrar su historial.' }
+  ]
 
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
@@ -161,13 +171,9 @@ export const Usuarios = () => {
     <Layout>
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-primary mb-2">
-              👥 Gestion de Usuarios
-            </h1>
-            <p className="text-gray-600">
-              Administra el acceso al sistema
-            </p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl font-bold text-primary italic">👥 Gestión de Usuarios</h1>
+            <HelpButton onClick={() => setModalAyuda(true)} />
           </div>
           <Button onClick={() => setModalCrear(true)}>
             + Crear Usuario
@@ -323,11 +329,11 @@ export const Usuarios = () => {
             </div>
 
             <div>
-              <p className="font-semibold text-gray-800 mb-2">
+              <p className="font-semibold text-gray-800 dark:text-gray-200 mb-2">
                 📱 Mensaje para enviar por WhatsApp:
               </p>
-              <div className="bg-gray-50 p-4 rounded-lg border-2 border-gray-200">
-                <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-600">
+                <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 font-mono">
                   {mensajeWhatsApp}
                 </pre>
               </div>
@@ -355,6 +361,13 @@ export const Usuarios = () => {
             </p>
           </div>
         </Modal>
+
+        <SectionGuide
+          isOpen={modalAyuda}
+          onClose={() => setModalAyuda(false)}
+          title="Gestión de Usuarios"
+          steps={pasosAyudaUsuarios}
+        />
       </div>
     </Layout>
   )

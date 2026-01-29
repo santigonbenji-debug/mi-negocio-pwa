@@ -27,10 +27,15 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Layout } from '../components/layout/Layout'
 import { DetalleVentaModal } from '../components/ventas/DetalleVentaModal'
+import { ScannerBarcode } from '../components/common/ScannerBarcode'
+import { HelpButton } from '../components/common/HelpButton'
+import { SectionGuide } from '../components/common/SectionGuide'
+import { MobileActions } from '../components/common/MobileActions'
+
 export const PuntoVenta = () => {
   const { user } = useAuthStore()
   const { cajaActual, verificarCajaAbierta } = useCajaStore()
- const { clientes: clientesFiados, cargarClientes: cargarClientesFiados } = useFiadosStore()
+  const { clientes: clientesFiados, cargarClientes: cargarClientesFiados } = useFiadosStore()
   const { productos, cargarProductos } = useProductosStore()
   const {
     carrito,
@@ -54,9 +59,9 @@ export const PuntoVenta = () => {
   const [modalVentaRapida, setModalVentaRapida] = useState(false)
   const [mostrarVentas, setMostrarVentas] = useState(false)
 
-// ✅ AGREGAR ESTOS DOS ESTADOS:
-const [modalDetalle, setModalDetalle] = useState(false)
-const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
+  // Modales y Selección
+  const [modalDetalle, setModalDetalle] = useState(false)
+  const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
 
   // Form Pago
   const [metodoPago, setMetodoPago] = useState('efectivo')
@@ -74,22 +79,34 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
   const [productoKgSeleccionado, setProductoKgSeleccionado] = useState(null)
   const [cantidadKg, setCantidadKg] = useState('')
 
+  // Auxiliares
+  const [mostrarScanner, setMostrarScanner] = useState(false)
+  const [modalAyuda, setModalAyuda] = useState(false)
+
+  const pasosAyudaPuntoVenta = [
+    { title: '🔍 Buscar o Escanear', description: 'Escribe el nombre del producto o usa la cámara para escanear el código de barras.' },
+    { title: '⚖️ Productos por KG', description: 'Si un producto se vende por peso, el sistema te pedirá los KG exactos al seleccionarlo.' },
+    { title: '⚡ Venta Rápida', description: 'Usa el botón "+" para vender algo que no tienes en el inventario.' },
+    { title: '💳 Métodos de Pago', description: 'Efectivo, Transferencia o Fiado (si el cliente ya está registrado).' }
+  ]
+
   // Cargar datos al montar
   useEffect(() => {
-  if (user?.negocio_id) {
-    verificarCajaAbierta(user.negocio_id)
-    cargarProductos(user.negocio_id)
-    cargarVentasDelDia(user.negocio_id)
-    cargarTotalesDelDia(user.negocio_id)
-    cargarClientesFiados(user.negocio_id)
-  }
-}, [user])
+    if (user?.negocio_id) {
+      verificarCajaAbierta(user.negocio_id)
+      cargarProductos(user.negocio_id)
+      cargarVentasDelDia(user.negocio_id)
+      cargarTotalesDelDia(user.negocio_id)
+      cargarClientesFiados(user.negocio_id)
+    }
+  }, [user])
 
   // Filtrar productos al buscar
   useEffect(() => {
     if (busqueda.trim()) {
       const filtrados = productos.filter(p =>
-        p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+        p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+        (p.codigo_barras && p.codigo_barras.includes(busqueda))
       )
       setProductosFiltrados(filtrados)
     } else {
@@ -97,48 +114,48 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
     }
   }, [busqueda, productos])
 
-  // Agregar producto
   const handleAgregarProducto = (producto) => {
     if (producto.stock_actual <= 0 && !producto.es_por_kg) {
       toast.error('Producto sin stock')
       return
     }
 
-    // Si es por KG, abrir modal para pedir cantidad
     if (producto.es_por_kg) {
       setProductoKgSeleccionado(producto)
       setModalCantidadKg(true)
       setBusqueda('')
-      setProductosFiltrados([])
     } else {
-      // Si es normal, agregar directo con cantidad 1
       agregarAlCarrito(producto, 1)
       setBusqueda('')
-      setProductosFiltrados([])
       toast.success(`${producto.nombre} agregado`)
     }
   }
 
-  // Confirmar cantidad para productos por KG
   const handleConfirmarCantidadKg = (e) => {
     e.preventDefault()
     const cantidadEnKg = parseFloat(cantidadKg) / 1000
-
     if (isNaN(cantidadEnKg) || cantidadEnKg <= 0) {
       toast.error('Ingresa una cantidad válida')
       return
     }
-
     agregarAlCarrito(productoKgSeleccionado, cantidadEnKg)
     toast.success(`${cantidadKg}g de ${productoKgSeleccionado.nombre} agregado`)
-
-    // Limpiar y cerrar
     setModalCantidadKg(false)
     setProductoKgSeleccionado(null)
     setCantidadKg('')
   }
 
-  // Venta rápida
+  const handleScanSuccess = (codigo) => {
+    const producto = productos.find(p => p.codigo_barras === codigo)
+    if (producto) {
+      handleAgregarProducto(producto)
+    } else {
+      toast.error('Producto no encontrado')
+      setBusqueda(codigo)
+    }
+    setMostrarScanner(false)
+  }
+
   const handleVentaRapida = (e) => {
     e.preventDefault()
     agregarProductoRapido(nombreRapido, parseFloat(precioRapido), parseInt(cantidadRapido))
@@ -149,15 +166,12 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
     setCantidadRapido('1')
   }
 
-  // Procesar pago
   const handleProcesarPago = async (e) => {
     e.preventDefault()
-    
     if (!cajaActual) {
       toast.error('Debes abrir una caja primero')
       return
     }
-
     if (metodoPago === 'fiado' && !clienteNombre.trim()) {
       toast.error('Ingresa el nombre del cliente para venta fiada')
       return
@@ -165,148 +179,150 @@ const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
 
     setProcesando(true)
     try {
-     await procesarVenta(
-  user.negocio_id,
-  user.id,
-        cajaActual.id,
-        metodoPago,
-        clienteNombre || null
-      )
-      
+      await procesarVenta(user.negocio_id, user.id, cajaActual.id, metodoPago, clienteNombre || null)
       toast.success('✅ Venta registrada')
       setModalPago(false)
       setMetodoPago('efectivo')
       setClienteNombre('')
       setEsClienteNuevo(false)
-      // Recargar datos
-     await verificarCajaAbierta(user.negocio_id)
-await cargarProductos(user.negocio_id)
-await cargarTotalesDelDia(user.negocio_id)
+      await verificarCajaAbierta(user.negocio_id)
+      await cargarProductos(user.negocio_id)
+      await cargarTotalesDelDia(user.negocio_id)
     } catch (error) {
       toast.error(error.message)
     } finally {
       setProcesando(false)
     }
   }
-// Ver detalle de venta
-const handleVerDetalle = (ventaId) => {
-  setVentaSeleccionada(ventaId)
-  setModalDetalle(true)
-}
+
+  const handleVerDetalle = (ventaId) => {
+    setVentaSeleccionada(ventaId)
+    setModalDetalle(true)
+  }
+
   const total = useMemo(() => calcularTotal(), [carrito])
 
- return (
-  <Layout>
-
+  return (
+    <Layout>
       {!cajaActual ? (
-        /* Sin caja abierta */
-        <div className="max-w-2xl mx-auto px-4 py-12">
-          <Card className="text-center py-12">
-            <div className="text-6xl mb-4">🔒</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              No hay caja abierta
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Debes abrir una caja para realizar ventas
-            </p>
-            <Button onClick={() => window.location.href = '/caja'}>
-              Ir a Caja
-            </Button>
+        <div className="max-w-2xl mx-auto px-4 py-12 text-center">
+          <Card className="py-12 border-2 border-dashed border-gray-200 dark:border-gray-700">
+            <div className="text-7xl mb-6">🔒</div>
+            <h2 className="text-3xl font-black text-gray-800 dark:text-white mb-2 uppercase">Caja Cerrada</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-sm mx-auto">Debes abrir una caja de administración para comenzar a vender.</p>
+            <Button onClick={() => window.location.href = '/caja'} className="py-4 px-8 text-lg">💰 Ir a Abrir Caja</Button>
           </Card>
         </div>
       ) : (
-        /* Interfaz de ventas */
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8 mb-20 lg:mb-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-10 gap-4">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl sm:text-4xl font-black text-primary dark:text-primary-light italic">🛒 Punto de Venta</h1>
+              <HelpButton onClick={() => setModalAyuda(true)} />
+            </div>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+              <Button
+                variant={mostrarVentas ? 'primary' : 'secondary'}
+                onClick={() => setMostrarVentas(!mostrarVentas)}
+                className="relative whitespace-nowrap lg:hidden"
+              >
+                {mostrarVentas ? '🔙 Vender' : '📄 Ver Ventas'}
+                {!mostrarVentas && totalesDelDia?.cantidad > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                    {totalesDelDia.cantidad}
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Columna izquierda: Búsqueda y productos */}
-            <div className="lg:col-span-2 space-y-4">
-              {/* Búsqueda */}
-              <Card>
-                <div className="relative">
-                  <Input
-                    placeholder="🔍 Buscar producto..."
-                    value={busqueda}
-                    onChange={e => setBusqueda(e.target.value)}
-                  />
-                  {productosFiltrados.length > 0 && (
-                    <div className="absolute z-10 w-full mt-2 bg-white border-2 border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto">
-                      {productosFiltrados.map(producto => (
-                        <button
-                          key={producto.id}
-                          onClick={() => handleAgregarProducto(producto)}
-                          className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100"
-                        >
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <p className="font-semibold text-gray-800">{producto.nombre}</p>
-                              <p className="text-sm text-gray-500">Stock: {producto.stock_actual}</p>
+            <div className={`lg:col-span-2 space-y-4 ${mostrarVentas ? 'hidden lg:block' : 'block'}`}>
+
+              <div className="sticky top-16 z-[40] -mx-2 sm:mx-0">
+                <Card className="shadow-2xl border-primary/30 py-4">
+                  <div className="flex gap-2 relative">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="🔍 Nombre o Código..."
+                        value={busqueda}
+                        onChange={e => setBusqueda(e.target.value)}
+                        className="text-lg py-4 sm:py-6"
+                        autoFocus
+                      />
+                    </div>
+                    <Button variant="secondary" onClick={() => setMostrarScanner(true)} className="px-6">📷</Button>
+
+                    {productosFiltrados.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white dark:bg-gray-800 border-2 border-primary/20 rounded-2xl shadow-2xl max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700 animate-in fade-in slide-in-from-top-2">
+                        {productosFiltrados.map(producto => (
+                          <button
+                            key={producto.id}
+                            onClick={() => handleAgregarProducto(producto)}
+                            className="w-full text-left px-5 py-4 hover:bg-primary/5 transition-colors flex justify-between items-center group"
+                          >
+                            <div className="min-w-0 pr-4">
+                              <p className="font-black text-gray-800 dark:text-gray-100 truncate group-hover:text-primary">{producto.nombre}</p>
+                              <Badge variant={producto.stock_actual <= producto.stock_minimo ? 'danger' : 'success'} className="mt-1">Stock: {producto.stock_actual}</Badge>
                             </div>
-                            <p className="text-lg font-bold text-primary">
-                              ${producto.precio.toFixed(2)}
-                            </p>
-                          </div>
-                        </button>
-                      ))}
+                            <p className="text-xl font-black text-primary whitespace-nowrap">${producto.precio.toFixed(2)}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {!busqueda && (
+                    <div className="hidden sm:block mt-4 pt-4 border-t dark:border-gray-700">
+                      <Button variant="secondary" className="w-full text-xs italic" onClick={() => setModalVentaRapida(true)}>⚡ Venta Rápida</Button>
                     </div>
                   )}
-                </div>
-                <Button
-                  variant="secondary"
-                  className="w-full mt-3"
-                  onClick={() => setModalVentaRapida(true)}
-                >
-                  ⚡ Venta Rápida (sin inventario)
-                </Button>
-              </Card>
+                </Card>
+              </div>
 
-              {/* Carrito */}
-              <Card>
-                <h3 className="text-xl font-bold text-gray-800 mb-4">
-                  Carrito ({carrito.length} items)
-                </h3>
-                {carrito.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <div className="text-5xl mb-3">🛒</div>
-                    <p>Carrito vacío</p>
+              {!busqueda && (
+                <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">🚀 Productos Frecuentes</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                    {productos.slice(0, 12).map(producto => (
+                      <button
+                        key={producto.id}
+                        onClick={() => handleAgregarProducto(producto)}
+                        className="flex flex-col items-center gap-1 p-2 rounded-2xl border-2 border-transparent hover:border-primary/30 hover:bg-primary/5 transition-all active:scale-90 group"
+                      >
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center text-lg font-bold group-hover:scale-110 transition-transform">
+                          {producto.nombre.charAt(0).toUpperCase()}
+                        </div>
+                        <p className="text-[9px] font-black text-gray-500 truncate w-full uppercase">{producto.nombre}</p>
+                        <p className="text-xs font-black text-primary">${producto.precio.toFixed(0)}</p>
+                      </button>
+                    ))}
                   </div>
+                </Card>
+              )}
+
+              <Card>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-black text-gray-800 dark:text-white uppercase italic">🛒 Carrito</h3>
+                  <Badge variant="primary">{carrito.length} Items</Badge>
+                </div>
+
+                {carrito.length === 0 ? (
+                  <div className="text-center py-20 opacity-20"><p className="text-6xl mb-2">📦</p><p className="font-black uppercase">Vacío</p></div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="divide-y dark:divide-gray-700 -mx-4">
                     {carrito.map((item, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-800">
-                            {item.nombre}
-                            {item.es_por_kg && ` (${item.cantidad.toFixed(2)} kg)`}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            ${item.precio_unitario.toFixed(2)} x {item.cantidad}
+                      <div key={index} className="px-4 py-4 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-black text-gray-800 dark:text-white truncate uppercase">{item.nombre}</p>
+                          <p className="text-xs text-gray-500 font-bold">
+                            {item.es_por_kg ? `${(item.cantidad * 1000).toFixed(0)}gr x $${item.precio_unitario}/kg` : `${item.cantidad} un. x $${item.precio_unitario}`}
                           </p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => actualizarCantidad(index, item.cantidad - 1)}
-                            className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold"
-                          >
-                            -
-                          </button>
-                          <span className="w-8 text-center font-semibold">{item.cantidad}</span>
-                          <button
-                            onClick={() => actualizarCantidad(index, item.cantidad + 1)}
-                            className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold"
-                          >
-                            +
-                          </button>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-lg text-primary">
-                            ${(item.precio_unitario * item.cantidad).toFixed(2)}
-                          </p>
-                          <button
-                            onClick={() => quitarDelCarrito(index)}
-                            className="text-xs text-danger hover:underline"
-                          >
-                            Eliminar
-                          </button>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => actualizarCantidad(index, item.cantidad - (item.es_por_kg ? 0.1 : 1))} className="w-8 h-8 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg text-lg font-black">-</button>
+                          <span className="w-10 text-center font-black">{item.es_por_kg ? (item.cantidad * 1000).toFixed(0) : item.cantidad}</span>
+                          <button onClick={() => actualizarCantidad(index, item.cantidad + (item.es_por_kg ? 0.1 : 1))} className="w-8 h-8 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg text-lg font-black">+</button>
+                          <button onClick={() => quitarDelCarrito(index)} className="ml-2 text-red-500">🗑️</button>
                         </div>
                       </div>
                     ))}
@@ -315,338 +331,104 @@ const handleVerDetalle = (ventaId) => {
               </Card>
             </div>
 
-            {/* Columna derecha: Total y acciones */}
-            <div className="space-y-4">
-              {/* Total */}
-              <Card>
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">Total</h3>
-                <p className="text-4xl font-bold text-primary mb-4">
-                  ${calcularTotal().toFixed(2)}
-                </p>
-                <div className="space-y-2">
-                  <Button
-                    className="w-full"
-                    variant="success"
-                    disabled={carrito.length === 0}
-                    onClick={() => setModalPago(true)}
-                  >
-                    Cobrar
-                  </Button>
-                  <Button
-                    className="w-full"
-                    variant="danger"
-                    disabled={carrito.length === 0}
-                    onClick={vaciarCarrito}
-                  >
-                    Vaciar Carrito
-                  </Button>
+            <div className={`space-y-4 ${mostrarVentas ? 'block' : 'hidden lg:block'}`}>
+              <Card className="sticky top-16 hidden lg:block">
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Total de la Venta</p>
+                <h3 className="text-5xl font-black text-primary mb-8">${total.toFixed(2)}</h3>
+                <div className="space-y-3">
+                  <Button variant="primary" className="w-full py-6 text-xl font-black rounded-2xl" onClick={() => setModalPago(true)} disabled={carrito.length === 0}>COBRAR (F2) 🚀</Button>
+                  <Button variant="secondary" className="w-full font-bold text-xs" onClick={vaciarCarrito} disabled={carrito.length === 0}>BORRAR CARRITO</Button>
                 </div>
               </Card>
 
-              {/* Totales del día */}
-              {totalesDelDia && (
-                <Card>
-                  <h3 className="text-lg font-semibold text-gray-700 mb-3">Ventas de Hoy</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Total:</span>
-                      <span className="font-bold">${totalesDelDia.total.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Efectivo:</span>
-                      <span className="font-bold text-green-600">${totalesDelDia.efectivo.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Transferencia:</span>
-                      <span className="font-bold text-blue-600">${totalesDelDia.tarjeta.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Fiado:</span>
-                      <span className="font-bold text-orange-600">${totalesDelDia.fiado.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between pt-2 border-t">
-                      <span>Cantidad:</span>
-                      <span className="font-bold">{totalesDelDia.cantidad} ventas</span>
-                    </div>
+              <Card>
+                <h3 className="text-xl font-black text-gray-800 dark:text-white uppercase italic mb-6">📄 Ventas de Hoy</h3>
+                {ventas.length === 0 ? (
+                  <p className="text-center py-10 opacity-30 text-xs font-black uppercase">Sin actividad</p>
+                ) : (
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto divide-y dark:divide-gray-700">
+                    {ventas.map((venta) => (
+                      <div key={venta.id} onClick={() => handleVerDetalle(venta.id)} className="py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg pr-2">
+                        <div>
+                          <p className="font-black text-lg">${venta.total.toFixed(2)}</p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase">{format(new Date(venta.fecha), 'HH:mm')} • {venta.metodo_pago}</p>
+                        </div>
+                        <span className="text-primary font-black text-xl">→</span>
+                      </div>
+                    ))}
                   </div>
-                  <Button
-                    variant="secondary"
-                    className="w-full mt-3"
-                    onClick={() => setMostrarVentas(!mostrarVentas)}
-                  >
-                    {mostrarVentas ? 'Ocultar' : 'Ver'} Historial
-                  </Button>
-                </Card>
-              )}
-{/* Historial - Siempre visible */}
-<Card>
-  <h3 className="text-lg font-semibold text-gray-700 mb-3">
-    Ventas de Hoy
-  </h3>
-  {ventas.length === 0 ? (
-    <div className="text-center py-8 text-gray-500">
-      <p className="text-2xl mb-2">📋</p>
-      <p className="text-sm">No hay ventas aún</p>
-    </div>
-  ) : (
-    <div className="space-y-2 max-h-96 overflow-y-auto">
-      {ventas.slice(0, 10).map(venta => (
-        <div 
-          key={venta.id} 
-          className="p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors cursor-pointer"
-          onClick={() => handleVerDetalle(venta.id)}
-        >
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="font-semibold text-gray-800">
-                ${venta.total.toFixed(2)}
-              </p>
-              <p className="text-xs text-gray-500">
-                {format(new Date(venta.fecha), 'HH:mm', { locale: es })}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={
-                venta.metodo_pago === 'efectivo' ? 'success' :
-                venta.metodo_pago === 'tarjeta' ? 'default' : 'warning'
-              }>
-                {venta.metodo_pago}
-              </Badge>
-              <span className="text-primary text-sm font-semibold">
-                Ver →
-              </span>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  )}
-</Card>
+                )}
+              </Card>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Venta Rápida */}
-      <Modal
-        isOpen={modalVentaRapida}
-        onClose={() => setModalVentaRapida(false)}
-        title="Venta Rápida"
-      >
+      {/* MODALES */}
+      <Modal isOpen={modalVentaRapida} onClose={() => setModalVentaRapida(false)} title="⚡ Venta Rápida">
         <form onSubmit={handleVentaRapida} className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Para productos que no están en el inventario
-          </p>
-          <Input
-            label="Descripción *"
-            value={nombreRapido}
-            onChange={e => setNombreRapido(e.target.value)}
-            placeholder="Ej: Servicio de reparación"
-            required
-          />
-          <Input
-            label="Precio *"
-            type="number"
-            step="0.01"
-            value={precioRapido}
-            onChange={e => setPrecioRapido(e.target.value)}
-            placeholder="0.00"
-            required
-          />
-          <Input
-            label="Cantidad *"
-            type="number"
-            value={cantidadRapido}
-            onChange={e => setCantidadRapido(e.target.value)}
-            placeholder="1"
-            required
-          />
-          <Button type="submit" className="w-full">
-            Agregar al Carrito
-          </Button>
+          <Input label="Descripción *" value={nombreRapido} onChange={e => setNombreRapido(e.target.value)} required autoFocus />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Precio" type="number" step="0.01" value={precioRapido} onChange={e => setPrecioRapido(e.target.value)} required />
+            <Input label="Cantidad" type="number" value={cantidadRapido} onChange={e => setCantidadRapido(e.target.value)} required />
+          </div>
+          <Button type="submit" className="w-full py-4 text-xl font-black">AGREGAR AL CARRITO</Button>
         </form>
       </Modal>
 
-      {/* Modal Pago */}
-      <Modal
-        isOpen={modalPago}
-        onClose={() => setModalPago(false)}
-        title="Procesar Pago"
-      >
-        <form onSubmit={handleProcesarPago} className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-lg text-center">
-            <p className="text-sm text-gray-600 mb-1">Total a cobrar:</p>
-            <p className="text-4xl font-bold text-primary">${calcularTotal().toFixed(2)}</p>
+      <Modal isOpen={modalPago} onClose={() => setModalPago(false)} title="💳 Cobro">
+        <form onSubmit={handleProcesarPago} className="space-y-6">
+          <div className="bg-primary/10 p-8 rounded-3xl text-center border-2 border-primary/20">
+            <p className="text-5xl font-black text-primary">${total.toFixed(2)}</p>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Método de pago *
-            </label>
-            <div className="space-y-2">
-              <label className="flex items-center p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50">
-                <input
-                  type="radio"
-                  name="metodo"
-                  value="efectivo"
-                  checked={metodoPago === 'efectivo'}
-                  onChange={e => setMetodoPago(e.target.value)}
-                  className="mr-3"
-                />
-                <span className="font-semibold">💵 Efectivo</span>
-              </label>
-              <label className="flex items-center p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50">
-                <input
-                  type="radio"
-                  name="metodo"
-                  value="tarjeta"
-                  checked={metodoPago === 'tarjeta'}
-                  onChange={e => setMetodoPago(e.target.value)}
-                  className="mr-3"
-                />
-                <span className="font-semibold">💳 Transferencia</span>
-              </label>
-              <label className="flex items-center p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50">
-                <input
-                  type="radio"
-                  name="metodo"
-                  value="fiado"
-                  checked={metodoPago === 'fiado'}
-                  onChange={e => setMetodoPago(e.target.value)}
-                  className="mr-3"
-                />
-                <span className="font-semibold">📝 Fiado</span>
-              </label>
-            </div>
-          </div>
-
-          {metodoPago === 'fiado' && (
-  <div className="space-y-3">
-    {clientesFiados.length > 0 && !esClienteNuevo ? (
-      <>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Seleccionar cliente *
-          </label>
-          <select
-            value={clienteNombre}
-            onChange={e => setClienteNombre(e.target.value)}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-            required
-          >
-            <option value="">-- Selecciona un cliente --</option>
-            {clientesFiados.map(cliente => (
-              <option key={cliente.id} value={cliente.cliente_nombre}>
-                {cliente.cliente_nombre} 
-                {cliente.deuda_total > 0 && ` (Debe: $${parseFloat(cliente.deuda_total).toFixed(2)})`}
-              </option>
+          <div className="grid grid-cols-3 gap-2">
+            {['efectivo', 'tarjeta', 'fiado'].map(m => (
+              <button key={m} type="button" onClick={() => setMetodoPago(m)} className={`p-4 rounded-2xl border-4 font-black uppercase text-[10px] transition-colors ${metodoPago === m ? 'border-primary bg-primary/10 text-primary' : 'border-transparent bg-gray-50 dark:bg-gray-700 text-gray-400 dark:text-gray-300'}`}>
+                {m === 'efectivo' ? '💵' : m === 'tarjeta' ? '💳' : '📝'}<br />{m === 'tarjeta' ? 'Transf' : m}
+              </button>
             ))}
-          </select>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setEsClienteNuevo(true)
-            setClienteNombre('')
-          }}
-          className="text-primary text-sm hover:underline"
-        >
-          + Agregar nuevo cliente
-        </button>
-      </>
-    ) : (
-      <>
-        <Input
-          label="Nombre del nuevo cliente *"
-          value={clienteNombre}
-          onChange={e => setClienteNombre(e.target.value)}
-          placeholder="Juan Pérez"
-          required
-        />
-        {clientesFiados.length > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              setEsClienteNuevo(false)
-              setClienteNombre('')
-            }}
-            className="text-primary text-sm hover:underline"
-          >
-            ← Seleccionar cliente existente
-          </button>
-        )}
-      </>
-    )}
-  </div>
-)}
-
-          <Button
-            type="submit"
-            variant="success"
-            className="w-full"
-            disabled={procesando}
-          >
-            {procesando ? 'Procesando...' : 'Confirmar Venta'}
-          </Button>
+          </div>
+          {metodoPago === 'fiado' && (
+            <div className="space-y-3">
+              <select value={clienteNombre} onChange={e => { setClienteNombre(e.target.value); setEsClienteNuevo(false); }} className="w-full p-4 bg-gray-100 dark:bg-gray-700 dark:text-gray-200 rounded-2xl font-black border-none">
+                <option value="">-- ELIGE CLIENTE --</option>
+                {clientesFiados.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
+              </select>
+              <Input placeholder="O escribe nombre nuevo..." value={esClienteNuevo ? clienteNombre : ''} onChange={e => { setClienteNombre(e.target.value); setEsClienteNuevo(true); }} />
+            </div>
+          )}
+          <Button type="submit" className="w-full py-6 text-xl font-black" disabled={procesando || carrito.length === 0}>{procesando ? '⌛ PROCESANDO...' : 'CONFIRMAR ✅'}</Button>
         </form>
       </Modal>
 
-      {/* Modal Cantidad KG */}
-      <Modal
-        isOpen={modalCantidadKg}
-        onClose={() => {
-          setModalCantidadKg(false)
-          setProductoKgSeleccionado(null)
-          setCantidadKg('')
-        }}
-        title={productoKgSeleccionado ? `¿Cuántos gramos de ${productoKgSeleccionado.nombre}?` : 'Cantidad en gramos'}
-      >
+      <Modal isOpen={modalCantidadKg} onClose={() => setModalCantidadKg(false)} title="⚖️ Peso">
         {productoKgSeleccionado && (
-          <form onSubmit={handleConfirmarCantidadKg} className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-lg text-center">
-              <p className="text-sm text-gray-600">Precio por KG</p>
-              <p className="text-3xl font-bold text-primary">
-                ${parseFloat(productoKgSeleccionado.precio).toFixed(2)}
-              </p>
+          <form onSubmit={handleConfirmarCantidadKg} className="space-y-6">
+            <div className="text-center p-4 bg-primary/5 rounded-2xl">
+              <h3 className="text-xl font-black text-primary uppercase">{productoKgSeleccionado.nombre}</h3>
             </div>
-
-            <Input
-              label="Cantidad en gramos *"
-              type="number"
-              step="1"
-              min="1"
-              value={cantidadKg}
-              onChange={e => setCantidadKg(e.target.value)}
-              placeholder="Ej: 250"
-              required
-              autoFocus
-            />
-
-            {cantidadKg && !isNaN(parseFloat(cantidadKg)) && parseFloat(cantidadKg) > 0 && (
-              <div className="bg-blue-50 p-3 rounded-lg text-center">
-                <p className="text-sm text-gray-600">Total a pagar</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  ${((parseFloat(cantidadKg) / 1000) * productoKgSeleccionado.precio).toFixed(2)}
-                </p>
+            <div className="flex items-center gap-4 justify-center">
+              <Input type="number" value={cantidadKg} onChange={e => setCantidadKg(e.target.value)} placeholder="0" className="text-4xl text-center font-black w-32" required autoFocus />
+              <span className="text-2xl font-black text-gray-300">GR.</span>
+            </div>
+            {cantidadKg > 0 && (
+              <div className="p-4 bg-primary text-white rounded-2xl text-center">
+                <p className="text-2xl font-black">${((parseFloat(cantidadKg) / 1000) * productoKgSeleccionado.precio).toFixed(2)}</p>
               </div>
             )}
-
-            <Button type="submit" className="w-full">
-              Agregar al Carrito
-            </Button>
+            <Button type="submit" className="w-full py-5 text-xl font-black">AGREGAR ⚖️</Button>
           </form>
         )}
       </Modal>
 
-      {/* Modal Detalle Venta */}
-      <DetalleVentaModal
-        isOpen={modalDetalle}
-        onClose={() => {
-          setModalDetalle(false)
-          setVentaSeleccionada(null)
-        }}
-        ventaId={ventaSeleccionada}
-      />
+      <DetalleVentaModal isOpen={modalDetalle} onClose={() => { setModalDetalle(false); setVentaSeleccionada(null); }} ventaId={ventaSeleccionada} />
+      {mostrarScanner && <ScannerBarcode onScan={handleScanSuccess} onClose={() => setMostrarScanner(false)} />}
+      <SectionGuide isOpen={modalAyuda} onClose={() => setModalAyuda(false)} title="Punto de Venta" steps={pasosAyudaPuntoVenta} />
+
+      <MobileActions actions={[
+        { label: 'Vaciar', icon: '🗑️', onClick: vaciarCarrito, variant: 'danger' },
+        { label: 'Cobrar', icon: '💳', onClick: () => carrito.length > 0 && setModalPago(true), variant: 'primary' }
+      ]} />
     </Layout>
   )
 }
