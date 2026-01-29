@@ -394,23 +394,23 @@ export const PuntoVenta = () => {
       </Modal>
 
       <Modal isOpen={modalPago} onClose={() => { setModalPago(false); setMontoRecibido(''); }} title="💳 Cobro">
-        <form onSubmit={handleProcesarPago} className="space-y-5">
+        <form onSubmit={handleProcesarPago} className="space-y-4 sm:space-y-3">
           {/* Total a cobrar */}
-          <div className="bg-gradient-to-br from-primary/5 to-primary/15 p-6 rounded-3xl text-center border border-primary/20">
-            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total a Cobrar</p>
-            <p className="text-5xl font-black text-primary">${total.toFixed(2)}</p>
+          <div className="bg-gradient-to-br from-primary/5 to-primary/15 p-5 sm:p-4 rounded-2xl text-center border border-primary/20">
+            <p className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total a Cobrar</p>
+            <p className="text-4xl sm:text-3xl font-black text-primary">${total.toFixed(2)}</p>
           </div>
 
           {/* Metodos de pago */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             {['efectivo', 'tarjeta', 'fiado'].map(m => (
               <button
                 key={m}
                 type="button"
                 onClick={() => { setMetodoPago(m); setMontoRecibido(''); }}
-                className={`p-4 rounded-2xl border-2 font-bold uppercase text-xs transition-all ${metodoPago === m ? 'border-primary bg-primary/10 text-primary shadow-lg scale-[1.02]' : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 hover:border-gray-300'}`}
+                className={`p-3 sm:p-2 rounded-xl border-2 font-bold uppercase text-[10px] transition-all ${metodoPago === m ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 hover:border-gray-300'}`}
               >
-                <span className="text-2xl block mb-1">{m === 'efectivo' ? '💵' : m === 'tarjeta' ? '💳' : '📝'}</span>
+                <span className="text-xl sm:text-lg block mb-0.5">{m === 'efectivo' ? '💵' : m === 'tarjeta' ? '💳' : '📝'}</span>
                 {m === 'tarjeta' ? 'TRANSF' : m.toUpperCase()}
               </button>
             ))}
@@ -418,34 +418,34 @@ export const PuntoVenta = () => {
 
           {/* Input monto recibido - solo para efectivo */}
           {metodoPago === 'efectivo' && (
-            <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
               <div className="relative">
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Monto Recibido (opcional)</label>
+                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Monto Recibido (opcional)</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black text-gray-400">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg sm:text-base font-black text-gray-400">$</span>
                   <input
                     type="number"
                     step="0.01"
                     value={montoRecibido}
                     onChange={e => setMontoRecibido(e.target.value)}
                     placeholder="0.00"
-                    className="w-full pl-10 pr-4 py-4 text-2xl font-black text-center bg-gray-50 dark:bg-gray-700 rounded-2xl border-2 border-gray-200 dark:border-gray-600 focus:border-primary focus:ring-0 outline-none transition-colors"
+                    className="w-full pl-8 pr-3 py-3 sm:py-2 text-xl sm:text-lg font-black text-center bg-gray-50 dark:bg-gray-700 rounded-xl border-2 border-gray-200 dark:border-gray-600 focus:border-primary focus:ring-0 outline-none transition-colors"
                   />
                 </div>
               </div>
 
               {/* Vuelto */}
               {montoRecibido && parseFloat(montoRecibido) >= total && (
-                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-2xl border-2 border-green-200 dark:border-green-800 animate-in fade-in zoom-in">
-                  <p className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-1">Vuelto</p>
-                  <p className="text-4xl font-black text-green-600 dark:text-green-400">
+                <div className="bg-green-50 dark:bg-green-900/20 p-3 sm:p-2 rounded-xl border-2 border-green-200 dark:border-green-800 animate-in fade-in zoom-in">
+                  <p className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-0.5">Vuelto</p>
+                  <p className="text-2xl sm:text-xl font-black text-green-600 dark:text-green-400">
                     ${(parseFloat(montoRecibido) - total).toFixed(2)}
                   </p>
                 </div>
               )}
               {montoRecibido && parseFloat(montoRecibido) > 0 && parseFloat(montoRecibido) < total && (
-                <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-2xl border border-orange-200 dark:border-orange-800">
-                  <p className="text-xs font-bold text-orange-600 dark:text-orange-400">
+                <div className="bg-orange-50 dark:bg-orange-900/20 p-2 rounded-xl border border-orange-200 dark:border-orange-800">
+                  <p className="text-[10px] font-bold text-orange-600 dark:text-orange-400">
                     Falta: ${(total - parseFloat(montoRecibido)).toFixed(2)}
                   </p>
                 </div>
@@ -455,7 +455,7 @@ export const PuntoVenta = () => {
 
           {/* Seleccion cliente fiado */}
           {metodoPago === 'fiado' && (
-            <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
               {clientesFiados.length > 0 && (
                 <select
                   value={!esClienteNuevo ? clienteNombre : ''}
@@ -463,7 +463,7 @@ export const PuntoVenta = () => {
                     setClienteNombre(e.target.value);
                     setEsClienteNuevo(false);
                   }}
-                  className="w-full p-4 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 rounded-2xl font-bold border-2 border-gray-200 dark:border-gray-600 focus:border-primary outline-none transition-colors"
+                  className="w-full p-3 sm:p-2 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 rounded-xl font-bold text-sm border-2 border-gray-200 dark:border-gray-600 focus:border-primary outline-none transition-colors"
                 >
                   <option value="">-- ELIGE CLIENTE EXISTENTE --</option>
                   {clientesFiados.map(c => <option key={c.id} value={c.cliente_nombre}>{c.cliente_nombre} (Deuda: ${parseFloat(c.deuda_total || 0).toFixed(2)})</option>)}
@@ -479,13 +479,13 @@ export const PuntoVenta = () => {
                   }}
                 />
                 {!esClienteNuevo && clienteNombre && (
-                  <p className="text-xs text-green-600 dark:text-green-400 font-bold mt-2">Cliente seleccionado: {clienteNombre}</p>
+                  <p className="text-[10px] text-green-600 dark:text-green-400 font-bold mt-1">Cliente seleccionado: {clienteNombre}</p>
                 )}
               </div>
             </div>
           )}
 
-          <Button type="submit" className="w-full py-5 text-xl font-black rounded-2xl" disabled={procesando || carrito.length === 0}>
+          <Button type="submit" className="w-full py-4 sm:py-3 text-base sm:text-sm font-black rounded-xl" disabled={procesando || carrito.length === 0}>
             {procesando ? '⌛ PROCESANDO...' : 'CONFIRMAR VENTA'}
           </Button>
         </form>

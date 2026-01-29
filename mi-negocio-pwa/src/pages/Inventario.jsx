@@ -461,12 +461,17 @@ export const Inventario = () => {
                         <p className="text-3xl font-black text-primary">${p.precio.toFixed(2)}</p>
                         <p className={`font-bold mt-1 ${stockBajo ? 'text-red-500' : 'text-gray-600 dark:text-gray-400'}`}>Stock: {p.stock_actual} {p.es_por_kg ? 'kg' : 'un.'}</p>
                       </div>
-                      <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-                        <Button variant="secondary" className="flex-1 py-1" onClick={() => handleAgregarStock(p.id, 1)}>+1</Button>
-                        <Button variant="secondary" className="flex-1 py-1" onClick={() => handleAgregarStock(p.id, 5)}>+5</Button>
-                        <Button variant="primary" className="p-2" onClick={() => abrirModalEditar(p)}>✏️</Button>
+                      <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
+                        <Button variant="secondary" className="flex-1 py-1.5 text-xs" onClick={() => handleAgregarStock(p.id, 1)}>+1</Button>
+                        <Button variant="secondary" className="flex-1 py-1.5 text-xs" onClick={() => handleAgregarStock(p.id, 5)}>+5</Button>
+                        <Button variant="primary" className="px-2.5 py-1.5 text-sm" onClick={() => abrirModalEditar(p)}>✏️</Button>
                         {puedeEliminarProductos && (
-                          <Button variant="danger" className="p-2" onClick={() => handleEliminar(p.id, p.nombre)}>🗑️</Button>
+                          <button
+                            onClick={() => handleEliminar(p.id, p.nombre)}
+                            className="px-2.5 py-1.5 text-sm bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-colors"
+                          >
+                            🗑️
+                          </button>
                         )}
                       </div>
                     </Card>
