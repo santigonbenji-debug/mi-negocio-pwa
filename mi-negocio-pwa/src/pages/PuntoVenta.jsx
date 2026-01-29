@@ -68,6 +68,7 @@ export const PuntoVenta = () => {
   const [clienteNombre, setClienteNombre] = useState('')
   const [esClienteNuevo, setEsClienteNuevo] = useState(false)
   const [procesando, setProcesando] = useState(false)
+  const [montoRecibido, setMontoRecibido] = useState('')
 
   // Form Venta Rápida
   const [nombreRapido, setNombreRapido] = useState('')
@@ -185,6 +186,7 @@ export const PuntoVenta = () => {
       setMetodoPago('efectivo')
       setClienteNombre('')
       setEsClienteNuevo(false)
+      setMontoRecibido('')
       await verificarCajaAbierta(user.negocio_id)
       await cargarProductos(user.negocio_id)
       await cargarTotalesDelDia(user.negocio_id)
@@ -285,19 +287,29 @@ export const PuntoVenta = () => {
                 <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">🚀 Productos Frecuentes</p>
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                    {productos.slice(0, 12).map(producto => (
-                      <button
-                        key={producto.id}
-                        onClick={() => handleAgregarProducto(producto)}
-                        className="flex flex-col items-center gap-1 p-2 rounded-2xl border-2 border-transparent hover:border-primary/30 hover:bg-primary/5 transition-all active:scale-90 group"
-                      >
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center text-lg font-bold group-hover:scale-110 transition-transform">
-                          {producto.nombre.charAt(0).toUpperCase()}
-                        </div>
-                        <p className="text-[9px] font-black text-gray-500 truncate w-full uppercase">{producto.nombre}</p>
-                        <p className="text-xs font-black text-primary">${producto.precio.toFixed(0)}</p>
-                      </button>
-                    ))}
+                    {productos.slice(0, 12).map((producto, idx) => {
+                      const colores = [
+                        'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
+                        'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+                        'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+                        'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
+                        'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400',
+                        'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400'
+                      ]
+                      return (
+                        <button
+                          key={producto.id}
+                          onClick={() => handleAgregarProducto(producto)}
+                          className="flex flex-col items-center gap-1 p-2 rounded-2xl border-2 border-transparent hover:border-primary/30 hover:bg-primary/5 transition-all active:scale-90 group"
+                        >
+                          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-lg font-bold group-hover:scale-110 transition-transform ${colores[idx % colores.length]}`}>
+                            {producto.nombre.charAt(0).toUpperCase()}
+                          </div>
+                          <p className="text-[9px] font-black text-gray-500 truncate w-full uppercase">{producto.nombre}</p>
+                          <p className="text-xs font-black text-primary">${producto.precio.toFixed(0)}</p>
+                        </button>
+                      )
+                    })}
                   </div>
                 </Card>
               )}
@@ -338,13 +350,13 @@ export const PuntoVenta = () => {
                 <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Total de la Venta</p>
                 <h3 className="text-5xl font-black text-primary mb-8">${total.toFixed(2)}</h3>
                 <div className="space-y-3">
-                  <Button variant="primary" className="w-full py-6 text-xl font-black rounded-2xl" onClick={() => setModalPago(true)} disabled={carrito.length === 0}>COBRAR (F2) 🚀</Button>
-                  <Button variant="secondary" className="w-full font-bold text-xs" onClick={vaciarCarrito} disabled={carrito.length === 0}>BORRAR CARRITO</Button>
+                  <Button variant="primary" className="w-full py-6 text-xl font-black rounded-2xl" onClick={() => setModalPago(true)} disabled={carrito.length === 0}>COBRAR</Button>
+                  <Button variant="secondary" className="w-full font-bold text-xs text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={vaciarCarrito} disabled={carrito.length === 0}>VACIAR CARRITO</Button>
                 </div>
               </Card>
 
               <Card>
-                <h3 className="text-xl font-black text-gray-800 dark:text-white uppercase italic mb-6">📄 Ventas de Hoy</h3>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">📄 Ventas de Hoy</p>
                 {ventas.length === 0 ? (
                   <p className="text-center py-10 opacity-30 text-xs font-black uppercase">Sin actividad</p>
                 ) : (
@@ -352,8 +364,8 @@ export const PuntoVenta = () => {
                     {ventas.map((venta) => (
                       <div key={venta.id} onClick={() => handleVerDetalle(venta.id)} className="py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg pr-2">
                         <div>
-                          <p className="font-black text-lg">${venta.total.toFixed(2)}</p>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase">{format(new Date(venta.fecha), 'HH:mm')} • {venta.metodo_pago}</p>
+                          <p className="font-black text-lg text-gray-800 dark:text-white">${venta.total.toFixed(2)}</p>
+                          <p className="text-[10px] text-gray-400 font-black uppercase">{format(new Date(venta.fecha), 'HH:mm')} • {venta.metodo_pago}</p>
                         </div>
                         <span className="text-primary font-black text-xl">→</span>
                       </div>
@@ -378,20 +390,69 @@ export const PuntoVenta = () => {
         </form>
       </Modal>
 
-      <Modal isOpen={modalPago} onClose={() => setModalPago(false)} title="💳 Cobro">
-        <form onSubmit={handleProcesarPago} className="space-y-6">
-          <div className="bg-primary/10 p-8 rounded-3xl text-center border-2 border-primary/20">
+      <Modal isOpen={modalPago} onClose={() => { setModalPago(false); setMontoRecibido(''); }} title="💳 Cobro">
+        <form onSubmit={handleProcesarPago} className="space-y-5">
+          {/* Total a cobrar */}
+          <div className="bg-gradient-to-br from-primary/5 to-primary/15 p-6 rounded-3xl text-center border border-primary/20">
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total a Cobrar</p>
             <p className="text-5xl font-black text-primary">${total.toFixed(2)}</p>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+
+          {/* Metodos de pago */}
+          <div className="grid grid-cols-3 gap-3">
             {['efectivo', 'tarjeta', 'fiado'].map(m => (
-              <button key={m} type="button" onClick={() => setMetodoPago(m)} className={`p-4 rounded-2xl border-4 font-black uppercase text-[10px] transition-colors ${metodoPago === m ? 'border-primary bg-primary/10 text-primary' : 'border-transparent bg-gray-50 dark:bg-gray-700 text-gray-400 dark:text-gray-300'}`}>
-                {m === 'efectivo' ? '💵' : m === 'tarjeta' ? '💳' : '📝'}<br />{m === 'tarjeta' ? 'Transf' : m}
+              <button
+                key={m}
+                type="button"
+                onClick={() => { setMetodoPago(m); setMontoRecibido(''); }}
+                className={`p-4 rounded-2xl border-2 font-bold uppercase text-xs transition-all ${metodoPago === m ? 'border-primary bg-primary/10 text-primary shadow-lg scale-[1.02]' : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 hover:border-gray-300'}`}
+              >
+                <span className="text-2xl block mb-1">{m === 'efectivo' ? '💵' : m === 'tarjeta' ? '💳' : '📝'}</span>
+                {m === 'tarjeta' ? 'TRANSF' : m.toUpperCase()}
               </button>
             ))}
           </div>
+
+          {/* Input monto recibido - solo para efectivo */}
+          {metodoPago === 'efectivo' && (
+            <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+              <div className="relative">
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Monto Recibido (opcional)</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black text-gray-400">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={montoRecibido}
+                    onChange={e => setMontoRecibido(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full pl-10 pr-4 py-4 text-2xl font-black text-center bg-gray-50 dark:bg-gray-700 rounded-2xl border-2 border-gray-200 dark:border-gray-600 focus:border-primary focus:ring-0 outline-none transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* Vuelto */}
+              {montoRecibido && parseFloat(montoRecibido) >= total && (
+                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-2xl border-2 border-green-200 dark:border-green-800 animate-in fade-in zoom-in">
+                  <p className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-1">Vuelto</p>
+                  <p className="text-4xl font-black text-green-600 dark:text-green-400">
+                    ${(parseFloat(montoRecibido) - total).toFixed(2)}
+                  </p>
+                </div>
+              )}
+              {montoRecibido && parseFloat(montoRecibido) > 0 && parseFloat(montoRecibido) < total && (
+                <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-2xl border border-orange-200 dark:border-orange-800">
+                  <p className="text-xs font-bold text-orange-600 dark:text-orange-400">
+                    Falta: ${(total - parseFloat(montoRecibido)).toFixed(2)}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Seleccion cliente fiado */}
           {metodoPago === 'fiado' && (
-            <div className="space-y-3">
+            <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
               {clientesFiados.length > 0 && (
                 <select
                   value={!esClienteNuevo ? clienteNombre : ''}
@@ -399,10 +460,10 @@ export const PuntoVenta = () => {
                     setClienteNombre(e.target.value);
                     setEsClienteNuevo(false);
                   }}
-                  className="w-full p-4 bg-gray-100 dark:bg-gray-700 dark:text-gray-200 rounded-2xl font-black border-2 border-gray-200 dark:border-gray-600"
+                  className="w-full p-4 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 rounded-2xl font-bold border-2 border-gray-200 dark:border-gray-600 focus:border-primary outline-none transition-colors"
                 >
                   <option value="">-- ELIGE CLIENTE EXISTENTE --</option>
-                  {clientesFiados.map(c => <option key={c.id} value={c.nombre}>{c.nombre} (Deuda: ${c.saldo_actual?.toFixed(2) || '0.00'})</option>)}
+                  {clientesFiados.map(c => <option key={c.id} value={c.cliente_nombre}>{c.cliente_nombre} (Deuda: ${parseFloat(c.deuda_total || 0).toFixed(2)})</option>)}
                 </select>
               )}
               <div className="relative">
@@ -415,12 +476,15 @@ export const PuntoVenta = () => {
                   }}
                 />
                 {!esClienteNuevo && clienteNombre && (
-                  <p className="text-xs text-green-600 dark:text-green-400 font-bold mt-1">Cliente seleccionado: {clienteNombre}</p>
+                  <p className="text-xs text-green-600 dark:text-green-400 font-bold mt-2">Cliente seleccionado: {clienteNombre}</p>
                 )}
               </div>
             </div>
           )}
-          <Button type="submit" className="w-full py-6 text-xl font-black" disabled={procesando || carrito.length === 0}>{procesando ? '⌛ PROCESANDO...' : 'CONFIRMAR ✅'}</Button>
+
+          <Button type="submit" className="w-full py-5 text-xl font-black rounded-2xl" disabled={procesando || carrito.length === 0}>
+            {procesando ? '⌛ PROCESANDO...' : 'CONFIRMAR VENTA'}
+          </Button>
         </form>
       </Modal>
 
