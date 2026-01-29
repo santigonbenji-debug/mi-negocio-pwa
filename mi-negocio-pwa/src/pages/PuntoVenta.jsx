@@ -116,20 +116,23 @@ export const PuntoVenta = () => {
   }, [busqueda, productos])
 
   const handleAgregarProducto = (producto) => {
-    if (producto.stock_actual <= 0 && !producto.es_por_kg) {
-      toast.error('Producto sin stock')
-      return
-    }
-
+    // Productos por KG no requieren validacion de stock
     if (producto.es_por_kg) {
       setProductoKgSeleccionado(producto)
       setModalCantidadKg(true)
       setBusqueda('')
-    } else {
-      agregarAlCarrito(producto, 1)
-      setBusqueda('')
-      toast.success(`${producto.nombre} agregado`)
+      return
     }
+
+    // Solo validar stock para productos por unidad
+    if (producto.stock_actual <= 0) {
+      toast.error('Producto sin stock')
+      return
+    }
+
+    agregarAlCarrito(producto, 1)
+    setBusqueda('')
+    toast.success(`${producto.nombre} agregado`)
   }
 
   const handleConfirmarCantidadKg = (e) => {
