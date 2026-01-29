@@ -12,6 +12,8 @@ import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { DetalleVentaModal } from '../components/ventas/DetalleVentaModal'
+import { HelpButton } from '../components/common/HelpButton'
+import { SectionGuide } from '../components/common/SectionGuide'
 
 export const Fiados = () => {
   const { user } = useAuthStore()
@@ -41,6 +43,14 @@ export const Fiados = () => {
 
   const [nombreNuevo, setNombreNuevo] = useState('')
   const [telefonoNuevo, setTelefonoNuevo] = useState('')
+  const [modalAyuda, setModalAyuda] = useState(false)
+
+  const pasosAyudaFiados = [
+    { title: '📒 ¿Qué es un Fiado?', description: 'Es una venta que te pagan después. El sistema guarda cuánto te debe cada cliente automáticamente.' },
+    { title: '👤 Clientes', description: 'Haz clic en un cliente para ver su historial completo de compras y pagos.' },
+    { title: '💵 Registrar Pagos', description: 'Incluso si te pagan más de lo que deben, el sistema guardará el "Saldo a Favor" para su próxima compra.' },
+    { title: '📊 Exportar', description: 'Usa el botón de Excel para tener una lista de quién te debe y cuánto, por si quieres cobrar por WhatsApp.' }
+  ]
 
   useEffect(() => {
     if (user?.negocio_id) {
@@ -71,10 +81,7 @@ export const Fiados = () => {
       return
     }
 
-    if (monto > clienteActual.deuda_total) {
-      toast.error('El monto no puede ser mayor a la deuda')
-      return
-    }
+    // ELIMINADO: Restricción de monto > deuda para permitir saldo a favor
 
     try {
       await registrarPago(clienteActual.id, monto, descripcionPago || 'Pago')
@@ -114,19 +121,19 @@ export const Fiados = () => {
     setModalDetalleVenta(true)
   }
   const handleEliminarCliente = async (cliente) => {
-  if (!window.confirm(`¿Estas seguro de eliminar a ${cliente.cliente_nombre}?\n\nEsta accion no se puede deshacer.`)) {
-    return
-  }
+    if (!window.confirm(`¿Estas seguro de eliminar a ${cliente.cliente_nombre}?\n\nEsta accion no se puede deshacer.`)) {
+      return
+    }
 
-  try {
-    await eliminarCliente(cliente.id)
-    toast.success('Cliente eliminado correctamente')
-    await cargarEstadisticas(user.negocio_id)
-  } catch (error) {
-    console.error('Error al eliminar:', error)
-    toast.error(error.message || 'Error al eliminar cliente')
+    try {
+      await eliminarCliente(cliente.id)
+      toast.success('Cliente eliminado correctamente')
+      await cargarEstadisticas(user.negocio_id)
+    } catch (error) {
+      console.error('Error al eliminar:', error)
+      toast.error(error.message || 'Error al eliminar cliente')
+    }
   }
-}
 
   const handleExportar = () => {
     try {
@@ -142,17 +149,21 @@ export const Fiados = () => {
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-4xl font-bold text-primary">📒 Fiados</h1>
-            <div className="flex gap-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl sm:text-4xl font-bold text-primary dark:text-primary-light italic">📒 Clientes Fiados</h1>
+              <HelpButton onClick={() => setModalAyuda(true)} />
+            </div>
+            <div className="flex gap-3 w-full md:w-auto">
               <Button
                 variant="secondary"
                 onClick={handleExportar}
                 disabled={clientes.length === 0}
+                className="flex-1 md:flex-none"
               >
                 📊 Exportar Excel
               </Button>
-              <Button onClick={() => setModalNuevo(true)}>
+              <Button onClick={() => setModalNuevo(true)} className="flex-1 md:flex-none whitespace-nowrap">
                 + Agregar Cliente
               </Button>
             </div>
@@ -160,27 +171,27 @@ export const Fiados = () => {
 
           {estadisticas && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card padding="p-4">
-                <p className="text-sm text-gray-600 mb-1">Deuda Total</p>
-                <p className="text-2xl font-bold text-danger">
+              <Card padding="p-4" className="border-l-4 border-red-500">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Deuda Total</p>
+                <p className="text-2xl font-black text-danger">
                   ${estadisticas.totalDeuda.toFixed(2)}
                 </p>
               </Card>
+              <Card padding="p-4" className="border-l-4 border-green-500">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Saldo a Favor Total</p>
+                <p className="text-2xl font-black text-green-600 dark:text-green-400">
+                  ${estadisticas.totalSaldoAFavor.toFixed(2)}
+                </p>
+              </Card>
               <Card padding="p-4">
-                <p className="text-sm text-gray-600 mb-1">Clientes con Deuda</p>
-                <p className="text-2xl font-bold text-primary">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Clientes c/ Deuda</p>
+                <p className="text-2xl font-black text-primary dark:text-primary-light">
                   {estadisticas.clientesConDeuda}
                 </p>
               </Card>
               <Card padding="p-4">
-                <p className="text-sm text-gray-600 mb-1">Total Clientes</p>
-                <p className="text-2xl font-bold text-gray-800">
-                  {estadisticas.totalClientes}
-                </p>
-              </Card>
-              <Card padding="p-4">
-                <p className="text-sm text-gray-600 mb-1">Deuda Mas Alta</p>
-                <p className="text-2xl font-bold text-warning">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Deuda Máxima</p>
+                <p className="text-2xl font-black text-warning">
                   ${estadisticas.deudaMasAlta.toFixed(2)}
                 </p>
               </Card>
@@ -195,75 +206,75 @@ export const Fiados = () => {
         ) : clientes.length === 0 ? (
           <Card className="text-center py-12">
             <div className="text-6xl mb-4">📒</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
               No hay clientes fiados
             </h2>
-            <p className="text-gray-600 mb-6">
-              Los clientes fiados apareceran aqui cuando realices ventas con el metodo "Fiado"
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Los clientes fiados aparecerán aquí cuando realices ventas con el método "Fiado".
             </p>
             <Button onClick={() => setModalNuevo(true)}>
               + Agregar Primer Cliente
             </Button>
           </Card>
         ) : (
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-  {clientes.map(cliente => {
-    const deuda = parseFloat(cliente.deuda_total)
-    const tieneDeuda = deuda > 0
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {clientes.map(cliente => {
+              const deuda = parseFloat(cliente.deuda_total)
+              const tieneDeuda = deuda > 0
 
-    return (
-      <Card
-  key={cliente.id}
-  className="hover:shadow-xl transition-shadow cursor-pointer"
-  onClick={() => handleVerDetalle(cliente)}
->
-  <div className="flex items-start justify-between mb-3">
-    <div className="flex-1">
-            <h3 className="font-bold text-lg text-gray-800">
-              {cliente.cliente_nombre}
-            </h3>
-            {cliente.telefono && (
-              <p className="text-sm text-gray-500">
-                📞 {cliente.telefono}
-              </p>
-            )}
+              return (
+                <Card
+                  key={cliente.id}
+                  className="hover:shadow-xl transition-shadow cursor-pointer"
+                  onClick={() => handleVerDetalle(cliente)}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">
+                        {cliente.cliente_nombre}
+                      </h3>
+                      {cliente.telefono && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          📞 {cliente.telefono}
+                        </p>
+                      )}
+                    </div>
+                    {tieneDeuda ? (
+                      <Badge variant="danger">Debe</Badge>
+                    ) : (
+                      <Badge variant="success">Al dia</Badge>
+                    )}
+                  </div>
+
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{deuda < 0 ? 'Saldo a Favor:' : 'Deuda:'}</p>
+                    <p className={`text-3xl font-bold ${deuda > 0 ? 'text-danger' : deuda < 0 ? 'text-green-600' : 'text-gray-400 dark:text-gray-500'}`}>
+                      ${Math.abs(deuda).toFixed(2)}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t flex items-center justify-between">
+                    <p className="text-xs text-gray-500">
+                      Cliente desde {format(new Date(cliente.creado_en), 'dd/MM/yyyy', { locale: es })}
+                    </p>
+
+                    {!tieneDeuda && (
+                      <Button
+                        variant="danger"
+                        className="text-xs py-1 px-3"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEliminarCliente(cliente)
+                        }}
+                      >
+                        🗑️ Eliminar
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              )
+            })}
           </div>
-          {tieneDeuda ? (
-            <Badge variant="danger">Debe</Badge>
-          ) : (
-            <Badge variant="success">Al dia</Badge>
-          )}
-        </div>
-
-        <div className="mt-4">
-          <p className="text-sm text-gray-600">Saldo:</p>
-          <p className={`text-3xl font-bold ${tieneDeuda ? 'text-danger' : 'text-success'}`}>
-            ${deuda.toFixed(2)}
-          </p>
-        </div>
-
-        <div className="mt-4 pt-4 border-t flex items-center justify-between">
-          <p className="text-xs text-gray-500">
-            Cliente desde {format(new Date(cliente.creado_en), 'dd/MM/yyyy', { locale: es })}
-          </p>
-          
-          {!tieneDeuda && (
-            <Button
-              variant="danger"
-              className="text-xs py-1 px-3"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleEliminarCliente(cliente)
-              }}
-            >
-              🗑️ Eliminar
-            </Button>
-          )}
-        </div>
-      </Card>
-    )
-  })}
-</div>
         )}
       </div>
 
@@ -278,30 +289,28 @@ export const Fiados = () => {
       >
         {clienteActual && (
           <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <p className="text-sm text-gray-600">Deuda Actual:</p>
-                  <p className="text-3xl font-bold text-danger">
-                    ${parseFloat(clienteActual.deuda_total).toFixed(2)}
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{parseFloat(clienteActual.deuda_total) < 0 ? 'Saldo a Favor:' : 'Deuda Actual:'}</p>
+                  <p className={`text-3xl font-bold ${parseFloat(clienteActual.deuda_total) > 0 ? 'text-danger' : 'text-green-600'}`}>
+                    ${Math.abs(parseFloat(clienteActual.deuda_total)).toFixed(2)}
                   </p>
                 </div>
                 {clienteActual.telefono && (
                   <div className="text-right">
-                    <p className="text-sm text-gray-600">Telefono:</p>
-                    <p className="font-semibold">{clienteActual.telefono}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Telefono:</p>
+                    <p className="font-semibold text-gray-800 dark:text-gray-200">{clienteActual.telefono}</p>
                   </div>
                 )}
               </div>
-              {parseFloat(clienteActual.deuda_total) > 0 && (
-                <Button
-                  variant="success"
-                  className="w-full mt-3"
-                  onClick={handleAbrirPago}
-                >
-                  Registrar Pago
-                </Button>
-              )}
+              <Button
+                variant="success"
+                className="w-full mt-3"
+                onClick={handleAbrirPago}
+              >
+                {parseFloat(clienteActual.deuda_total) <= 0 ? 'Agregar Saldo' : 'Registrar Pago'}
+              </Button>
             </div>
 
             <div>
@@ -317,16 +326,15 @@ export const Fiados = () => {
                   {movimientos.map(mov => (
                     <div
                       key={mov.id}
-                      className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg ${
-                        mov.venta_id ? 'hover:bg-gray-100 cursor-pointer' : ''
-                      }`}
+                      className={`flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg ${mov.venta_id ? 'hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors' : ''
+                        }`}
                       onClick={() => mov.venta_id && handleVerDetalleVenta(mov.venta_id)}
                     >
                       <div className="flex-1">
-                        <p className="font-semibold text-gray-800">
+                        <p className="font-semibold text-gray-800 dark:text-gray-100">
                           {mov.descripcion}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           {format(new Date(mov.fecha), "dd/MM/yyyy HH:mm", { locale: es })}
                         </p>
                         {mov.venta_id && (
@@ -359,9 +367,9 @@ export const Fiados = () => {
       >
         {clienteActual && (
           <form onSubmit={handleRegistrarPago} className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-lg text-center">
-              <p className="text-sm text-gray-600 mb-1">Deuda actual:</p>
-              <p className="text-3xl font-bold text-danger">
+            <div className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-2xl text-center border dark:border-gray-700/50 mb-6">
+              <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Deuda actual:</p>
+              <p className="text-4xl font-black text-danger">
                 ${parseFloat(clienteActual.deuda_total).toFixed(2)}
               </p>
             </div>
@@ -442,6 +450,12 @@ export const Fiados = () => {
           setVentaSeleccionada(null)
         }}
         ventaId={ventaSeleccionada}
+      />
+      <SectionGuide
+        isOpen={modalAyuda}
+        onClose={() => setModalAyuda(false)}
+        title="Clientes Fiados"
+        steps={pasosAyudaFiados}
       />
     </Layout>
   )

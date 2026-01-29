@@ -22,23 +22,23 @@ export const useProductosStore = create((set, get) => ({
   busqueda: '',
 
   // Cargar todos los productos
- cargarProductos: async (negocioId) => {
-  // Validar que existe negocio_id
-  if (!negocioId) {
-    console.warn('No hay negocio_id disponible')
-    set({ productos: [], cargando: false })
-    return
-  }
-  
-  set({ cargando: true })
-  try {
-    const productos = await productosService.obtenerTodos(negocioId)
-    set({ productos, cargando: false })
-  } catch (error) {
-    console.error('Error al cargar productos:', error)
-    set({ cargando: false })
-  }
-},
+  cargarProductos: async (negocioId) => {
+    // Validar que existe negocio_id
+    if (!negocioId) {
+      console.warn('No hay negocio_id disponible')
+      set({ productos: [], cargando: false })
+      return
+    }
+
+    set({ cargando: true })
+    try {
+      const productos = await productosService.obtenerTodos(negocioId)
+      set({ productos, cargando: false })
+    } catch (error) {
+      console.error('Error al cargar productos:', error)
+      set({ cargando: false })
+    }
+  },
   // Buscar productos
   buscarProductos: async (negocioId, termino) => {
     set({ busqueda: termino, cargando: true })
@@ -65,6 +65,18 @@ export const useProductosStore = create((set, get) => ({
       productos: get().productos.map(p => p.id === id ? actualizado : p)
     })
     return actualizado
+  },
+
+  // Actualizar múltiples productos
+  actualizarProductosMasivo: async (ids, datos) => {
+    const actualizados = await productosService.actualizarMuchos(ids, datos)
+    set({
+      productos: get().productos.map(p => {
+        const actualizado = actualizados.find(a => a.id === p.id)
+        return actualizado ? actualizado : p
+      })
+    })
+    return actualizados
   },
 
   // Agregar stock rápido

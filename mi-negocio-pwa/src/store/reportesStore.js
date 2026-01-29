@@ -16,22 +16,22 @@ import { reportesService } from '../services/reportes'
 const calcularRango = (tipo) => {
   const hoy = new Date()
   hoy.setHours(23, 59, 59, 999) // Fin del día
-  
+
   const inicio = new Date()
   inicio.setHours(0, 0, 0, 0) // Inicio del día
 
   switch (tipo) {
     case 'hoy':
       return { inicio, fin: hoy }
-    
+
     case 'semana':
       inicio.setDate(inicio.getDate() - 7)
       return { inicio, fin: hoy }
-    
+
     case 'mes':
       inicio.setDate(inicio.getDate() - 30)
       return { inicio, fin: hoy }
-    
+
     default:
       return { inicio, fin: hoy }
   }
@@ -42,10 +42,10 @@ export const useReportesStore = create((set, get) => ({
   fechaInicio: new Date(new Date().setDate(new Date().getDate() - 7)), // Última semana por defecto
   fechaFin: new Date(),
   rangoActivo: 'semana',
-  
+
   // Pestaña activa
   pestanaActiva: 'cajas', // 'cajas' | 'ventas' | 'analisis'
-  
+
   // Datos
   cajas: [],
   movimientosCajaSeleccionada: [],
@@ -54,35 +54,36 @@ export const useReportesStore = create((set, get) => ({
   totales: null,
   productosMasVendidos: [],
   ventasPorDia: [],
-  
+  ventasPorHora: [],
+
   // Estados
   cargando: false,
   filtroMetodoPago: null, // Para filtrar ventas
-  
+
   // Cambiar pestaña
   setPestana: (pestana) => {
     set({ pestanaActiva: pestana })
   },
-  
+
   // Establecer rango rápido
   setRangoRapido: (tipo) => {
     const { inicio, fin } = calcularRango(tipo)
-    set({ 
-      fechaInicio: inicio, 
+    set({
+      fechaInicio: inicio,
       fechaFin: fin,
       rangoActivo: tipo
     })
   },
-  
+
   // Establecer fechas personalizadas
   setFechasPersonalizadas: (inicio, fin) => {
-    set({ 
-      fechaInicio: inicio, 
+    set({
+      fechaInicio: inicio,
       fechaFin: fin,
       rangoActivo: 'personalizado'
     })
   },
-  
+
   // Cargar datos de cajas
   cargarCajas: async (negocioId) => {
     set({ cargando: true })
@@ -99,7 +100,7 @@ export const useReportesStore = create((set, get) => ({
       set({ cargando: false })
     }
   },
-  
+
   // Seleccionar caja y cargar movimientos
   seleccionarCaja: async (caja) => {
     set({ cargando: true, cajaSeleccionada: caja })
@@ -111,17 +112,17 @@ export const useReportesStore = create((set, get) => ({
       set({ cargando: false })
     }
   },
-  
+
   cerrarDetalleCaja: () => {
     set({ cajaSeleccionada: null, movimientosCajaSeleccionada: [] })
   },
-  
+
   // Cargar datos de ventas
   cargarVentas: async (negocioId) => {
     set({ cargando: true })
     try {
       const { fechaInicio, fechaFin, filtroMetodoPago } = get()
-      
+
       const [ventas, totales] = await Promise.all([
         reportesService.ventasEnPeriodo(
           negocioId,
@@ -135,26 +136,26 @@ export const useReportesStore = create((set, get) => ({
           fechaFin.toISOString()
         )
       ])
-      
+
       set({ ventas, totales, cargando: false })
     } catch (error) {
       console.error('Error al cargar ventas:', error)
       set({ cargando: false })
     }
   },
-  
+
   // Cambiar filtro de método de pago
   setFiltroMetodoPago: (metodo) => {
     set({ filtroMetodoPago: metodo })
   },
-  
+
   // Cargar datos de análisis
   cargarAnalisis: async (negocioId) => {
     set({ cargando: true })
     try {
       const { fechaInicio, fechaFin } = get()
-      
-      const [productosMasVendidos, ventasPorDia, totales] = await Promise.all([
+
+      const [productosMasVendidos, ventasPorDia, totales, ventasPorHora] = await Promise.all([
         reportesService.productosMasVendidosPeriodo(
           negocioId,
           fechaInicio.toISOString(),
@@ -170,21 +171,27 @@ export const useReportesStore = create((set, get) => ({
           negocioId,
           fechaInicio.toISOString(),
           fechaFin.toISOString()
+        ),
+        reportesService.ventasPorHora(
+          negocioId,
+          fechaInicio.toISOString(),
+          fechaFin.toISOString()
         )
       ])
-      
-      set({ 
-        productosMasVendidos, 
+
+      set({
+        productosMasVendidos,
         ventasPorDia,
+        ventasPorHora,
         totales,
-        cargando: false 
+        cargando: false
       })
     } catch (error) {
       console.error('Error al cargar análisis:', error)
       set({ cargando: false })
     }
   },
-  
+
   // Limpiar store
   limpiar: () => {
     set({

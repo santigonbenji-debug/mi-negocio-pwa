@@ -24,11 +24,11 @@ export const productosService = {
   async obtenerTodos(negocioId) {
     const { data, error } = await supabase
       .from('productos')
-      .select('*')
+      .select('*, categorias(nombre, color)')
       .eq('negocio_id', negocioId)
       .eq('activo', true)
       .order('nombre')
-    
+
     if (error) throw error
     return data || []
   },
@@ -37,12 +37,12 @@ export const productosService = {
   async buscar(negocioId, termino) {
     const { data, error } = await supabase
       .from('productos')
-      .select('*')
+      .select('*, categorias(nombre, color)')
       .eq('negocio_id', negocioId)
       .eq('activo', true)
       .ilike('nombre', `%${termino}%`)
       .order('nombre')
-    
+
     if (error) throw error
     return data || []
   },
@@ -50,13 +50,13 @@ export const productosService = {
   // Crear producto
   async crear(negocioId, datosProducto) {
     const datosValidados = validar(schemas.producto, datosProducto)
-    
+
     const { data, error } = await supabase
       .from('productos')
       .insert({ ...datosValidados, negocio_id: negocioId })
-      .select()
+      .select('*, categorias(nombre, color)')
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -64,14 +64,26 @@ export const productosService = {
   // Actualizar producto
   async actualizar(id, datosProducto) {
     const datosValidados = validar(schemas.producto, datosProducto)
-    
+
     const { data, error } = await supabase
       .from('productos')
       .update(datosValidados)
       .eq('id', id)
-      .select()
+      .select('*, categorias(nombre, color)')
       .single()
-    
+
+    if (error) throw error
+    return data
+  },
+
+  // Actualizar múltiples productos a la vez
+  async actualizarMuchos(ids, datos) {
+    const { data, error } = await supabase
+      .from('productos')
+      .update(datos)
+      .in('id', ids)
+      .select('*, categorias(nombre, color)')
+
     if (error) throw error
     return data
   },
@@ -84,7 +96,7 @@ export const productosService = {
       .eq('id', id)
       .select()
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -96,7 +108,7 @@ export const productosService = {
       .select('stock_actual')
       .eq('id', id)
       .single()
-    
+
     return this.actualizarStock(id, producto.stock_actual + cantidad)
   },
 
@@ -106,7 +118,7 @@ export const productosService = {
       .from('productos')
       .update({ activo: false })
       .eq('id', id)
-    
+
     if (error) throw error
   },
 
@@ -118,7 +130,7 @@ export const productosService = {
       .eq('negocio_id', negocioId)
       .eq('activo', true)
       .filter('stock_actual', 'lte', supabase.raw('stock_minimo'))
-    
+
     if (error) throw error
     return data || []
   }

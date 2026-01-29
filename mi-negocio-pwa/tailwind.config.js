@@ -1,10 +1,11 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
-        primary: { 
+        primary: {
           DEFAULT: '#572364',    // Morado principal
           dark: '#3d1846',       // Morado más oscuro (hover)
           light: '#7a3589'       // Morado más claro (destacados)
@@ -13,10 +14,10 @@ export default {
         danger: '#EF4444',       // Rojo para errores/alertas
         warning: '#F59E0B'       // Amarillo para advertencias
       },
-      borderRadius: { 
+      borderRadius: {
         button: '12px'           // Botones redondeados medianos
       },
-      spacing: { 
+      spacing: {
         '18': '4.5rem'           // Espaciado personalizado
       }
     }

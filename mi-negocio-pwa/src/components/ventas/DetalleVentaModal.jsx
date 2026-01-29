@@ -48,38 +48,38 @@ export const DetalleVentaModal = ({ isOpen, onClose, ventaId }) => {
       ) : venta ? (
         <div className="space-y-6">
           {/* Encabezado */}
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-600">Fecha</p>
-                <p className="font-semibold">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Fecha</p>
+                <p className="font-semibold dark:text-gray-100">
                   {format(new Date(venta.fecha), "dd/MM/yyyy HH:mm", { locale: es })}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Vendedor</p>
-                <p className="font-semibold">{venta.usuarios?.nombre || 'N/A'}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Vendedor</p>
+                <p className="font-semibold dark:text-gray-100">{venta.usuarios?.nombre || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Tipo de Venta</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Tipo de Venta</p>
                 <Badge variant={venta.tipo === 'stock' ? 'default' : 'warning'}>
                   {venta.tipo === 'stock' ? '📦 Inventario' : '⚡ Rápida'}
                 </Badge>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Método de Pago</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Método de Pago</p>
                 <Badge variant={
                   venta.metodo_pago === 'efectivo' ? 'success' :
-                  venta.metodo_pago === 'tarjeta' ? 'default' : 'warning'
+                    venta.metodo_pago === 'tarjeta' ? 'default' : 'warning'
                 }>
                   {venta.metodo_pago === 'efectivo' ? '💵 Efectivo' :
-                   venta.metodo_pago === 'tarjeta' ? '💳 Transferencia' : '📝 Fiado'}
+                    venta.metodo_pago === 'tarjeta' ? '💳 Transferencia' : '📝 Fiado'}
                 </Badge>
               </div>
               {venta.cliente_nombre && (
                 <div className="col-span-2">
-                  <p className="text-sm text-gray-600">Cliente</p>
-                  <p className="font-semibold">{venta.cliente_nombre}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Cliente</p>
+                  <p className="font-semibold dark:text-gray-100">{venta.cliente_nombre}</p>
                 </div>
               )}
             </div>
@@ -87,23 +87,23 @@ export const DetalleVentaModal = ({ isOpen, onClose, ventaId }) => {
 
           {/* Items de la venta */}
           <div>
-            <h3 className="font-bold text-lg mb-3">Productos / Servicios</h3>
+            <h3 className="font-bold text-lg mb-3 dark:text-white">Productos / Servicios</h3>
             <div className="space-y-2">
               {venta.ventas_items.map((item, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                 >
                   <div className="flex-1">
-                    <p className="font-semibold text-gray-800">
+                    <p className="font-semibold text-gray-800 dark:text-gray-100">
                       {item.productos?.nombre || item.descripcion_momento_venta}
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                       ${parseFloat(item.precio_unitario).toFixed(2)} × {item.cantidad}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-lg text-primary">
+                    <p className="font-bold text-lg text-primary dark:text-primary-light">
                       ${(parseFloat(item.precio_unitario) * item.cantidad).toFixed(2)}
                     </p>
                   </div>
@@ -113,10 +113,10 @@ export const DetalleVentaModal = ({ isOpen, onClose, ventaId }) => {
           </div>
 
           {/* Total */}
-          <div className="border-t-2 border-gray-200 pt-4">
+          <div className="border-t-2 border-gray-200 dark:border-gray-700 pt-4">
             <div className="flex items-center justify-between">
-              <span className="text-xl font-semibold text-gray-800">TOTAL</span>
-              <span className="text-3xl font-bold text-primary">
+              <span className="text-xl font-semibold text-gray-800 dark:text-gray-200">TOTAL</span>
+              <span className="text-3xl font-bold text-primary dark:text-primary-light">
                 ${parseFloat(venta.total).toFixed(2)}
               </span>
             </div>

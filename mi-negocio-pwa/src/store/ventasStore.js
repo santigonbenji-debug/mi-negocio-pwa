@@ -33,9 +33,9 @@ export const useVentasStore = create((set, get) => ({
   // Agregar producto al carrito
   agregarAlCarrito: (producto, cantidad = 1) => {
     const { carrito } = get()
-    
+
     // Verificar si ya está en el carrito
-    const existente = carrito.find(item => 
+    const existente = carrito.find(item =>
       item.producto_id === producto.id
     )
 
@@ -55,6 +55,7 @@ export const useVentasStore = create((set, get) => ({
           producto_id: producto.id,
           nombre: producto.nombre,
           precio_unitario: producto.precio,
+          precio_costo: producto.precio_costo || 0,
           cantidad,
           stock_disponible: producto.stock_actual,
           es_por_kg: producto.es_por_kg || false
@@ -66,7 +67,7 @@ export const useVentasStore = create((set, get) => ({
   // Agregar producto rápido (sin inventario)
   agregarProductoRapido: (nombre, precio, cantidad = 1) => {
     const { carrito } = get()
-    
+
     set({
       carrito: [...carrito, {
         producto_id: null, // Sin ID = venta rápida
@@ -81,7 +82,7 @@ export const useVentasStore = create((set, get) => ({
   // Actualizar cantidad de un item
   actualizarCantidad: (index, nuevaCantidad) => {
     const { carrito } = get()
-    
+
     if (nuevaCantidad <= 0) {
       // Eliminar si cantidad es 0
       set({
@@ -112,7 +113,7 @@ export const useVentasStore = create((set, get) => ({
   // Procesar venta
   procesarVenta: async (negocioId, usuarioId, cajaId, metodoPago, clienteNombre = null) => {
     const { carrito } = get()
-    
+
     if (carrito.length === 0) {
       throw new Error('El carrito está vacío')
     }

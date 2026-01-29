@@ -23,7 +23,7 @@ export const fiadosService = {
       .select('*')
       .eq('negocio_id', negocioId)
       .order('deuda_total', { ascending: false })
-    
+
     if (error) throw error
     return data || []
   },
@@ -35,7 +35,7 @@ export const fiadosService = {
       .select('*')
       .eq('id', fiadoId)
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -47,7 +47,7 @@ export const fiadosService = {
       .select('*')
       .eq('fiado_id', fiadoId)
       .order('fecha', { ascending: false })
-    
+
     if (error) throw error
     return data || []
   },
@@ -64,7 +64,7 @@ export const fiadosService = {
       })
       .select()
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -80,7 +80,7 @@ export const fiadosService = {
       })
       .select()
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -93,7 +93,7 @@ export const fiadosService = {
       .eq('id', fiadoId)
       .select()
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -110,39 +110,55 @@ export const fiadosService = {
       .from('fiados')
       .delete()
       .eq('id', fiadoId)
-    
+
     if (error) throw error
   },
- // Obtener movimientos de un cliente CON DETALLES DE VENTA
-// Obtener movimientos de un cliente (SIN EMBEDS)
-async obtenerMovimientos(fiadoId) {
-  const { data: movimientos, error } = await supabase
-    .from('fiados_movimientos')
-    .select('*')
-    .eq('fiado_id', fiadoId)
-    .order('fecha', { ascending: false })
+  // Obtener movimientos de un cliente CON DETALLES DE VENTA
+  // Obtener movimientos de un cliente (SIN EMBEDS)
+  async obtenerMovimientos(fiadoId) {
+    const { data: movimientos, error } = await supabase
+      .from('fiados_movimientos')
+      .select('*')
+      .eq('fiado_id', fiadoId)
+      .order('fecha', { ascending: false })
 
-  if (error) throw error
-  return movimientos || []
-},
+    if (error) throw error
+    return movimientos || []
+  },
 
   // Obtener estadísticas
   async obtenerEstadisticas(negocioId) {
     const clientes = await this.obtenerTodos(negocioId)
-    
-    const totalDeuda = clientes.reduce((sum, c) => sum + parseFloat(c.deuda_total), 0)
-    const clientesConDeuda = clientes.filter(c => c.deuda_total > 0).length
-    const deudaMasAlta = clientes.length > 0 ? Math.max(...clientes.map(c => c.deuda_total)) : 0
-    
+
+    // Deuda es cuando deuda_total > 0
+    // Saldo a favor es cuando deuda_total < 0
+    let totalDeuda = 0
+    let totalSaldoAFavor = 0
+    let clientesConDeudaLabels = 0
+    let clientesConSaldo = 0
+    let deudaMasAlta = 0
+
+    clientes.forEach(c => {
+      const deuda = parseFloat(c.deuda_total)
+      if (deuda > 0) {
+        totalDeuda += deuda
+        clientesConDeudaLabels++
+        if (deuda > deudaMasAlta) deudaMasAlta = deuda
+      } else if (deuda < 0) {
+        totalSaldoAFavor += Math.abs(deuda)
+        clientesConSaldo++
+      }
+    })
+
     return {
       totalDeuda,
-      clientesConDeuda,
+      totalSaldoAFavor,
+      clientesConDeuda: clientesConDeudaLabels,
+      clientesConSaldo,
       totalClientes: clientes.length,
       deudaMasAlta
     }
-
-    
   }
 
-  
+
 }

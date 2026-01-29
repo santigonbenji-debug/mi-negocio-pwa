@@ -27,6 +27,9 @@ export const schemas = {
       .max(100, "Nombre muy largo (máx 100 caracteres)"),
     precio: z.number()
       .positive("El precio debe ser mayor a 0"),
+    precio_costo: z.number()
+      .min(0, "El precio de costo no puede ser negativo")
+      .default(0),
     stock_actual: z.number()
       .int("El stock debe ser un número entero")
       .min(0, "El stock no puede ser negativo"),
@@ -35,7 +38,8 @@ export const schemas = {
       .min(0, "El stock mínimo no puede ser negativo")
       .default(5),
     codigo_barras: z.string().nullable().optional(),
-    es_por_kg: z.boolean().default(false)
+    es_por_kg: z.boolean().default(false),
+    categoria_id: z.string().uuid().nullable().optional()
   }),
 
   // Item de venta (para carrito)
@@ -51,6 +55,12 @@ export const schemas = {
       }, "La cantidad debe tener máximo 2 decimales"),
     precio_unitario: z.number().positive("El precio debe ser mayor a 0"),
     nombre: z.string().min(1)
+  }),
+
+  // Categoría
+  categoria: z.object({
+    nombre: z.string().min(1, "Nombre obligatorio").max(50),
+    color: z.string().regex(/^#[0-9A-F]{6}$/i).default('#6B7280')
   }),
 
   // Venta

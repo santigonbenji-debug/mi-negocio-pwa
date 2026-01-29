@@ -17,25 +17,26 @@
 
 import React from 'react'
 
-export const Input = ({ 
-  label, 
-  error, 
+export const Input = ({
+  label,
+  error,
   className = '',
-  ...props 
+  ...props
 }) => {
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {label}
         </label>
       )}
       <input
         className={`
-          w-full px-4 py-3 border-2 border-gray-200 rounded-lg
-          focus:border-primary focus:ring-2 focus:ring-primary/20
+          w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg
+          text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+          focus:border-primary dark:focus:border-primary-light focus:ring-2 focus:ring-primary/20
           outline-none transition-all
-          ${error ? 'border-danger' : ''}
+          ${error ? 'border-danger dark:border-danger' : ''}
           ${className}
         `}
         {...props}

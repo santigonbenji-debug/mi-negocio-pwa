@@ -14,22 +14,22 @@
 
 import React from 'react'
 
-export const Button = ({ 
-  children, 
+export const Button = ({
+  children,
   variant = 'primary',
   onClick,
   disabled = false,
   className = '',
   type = 'button',
-  ...props 
+  ...props
 }) => {
   const variants = {
-    primary: 'bg-primary hover:bg-primary-dark text-white',
-    success: 'bg-success hover:bg-green-600 text-white',
-    danger: 'bg-danger hover:bg-red-600 text-white',
-    secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+    primary: 'bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/20',
+    success: 'bg-success hover:bg-green-600 text-white shadow-lg shadow-success/20',
+    danger: 'bg-danger hover:bg-red-600 text-white shadow-lg shadow-danger/20',
+    secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200'
   }
-  
+
   return (
     <button
       type={type}

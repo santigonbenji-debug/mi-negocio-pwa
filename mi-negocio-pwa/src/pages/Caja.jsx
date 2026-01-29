@@ -25,8 +25,12 @@ import { es } from 'date-fns/locale'
 import { Layout } from '../components/layout/Layout'
 import { DetalleVentaModal } from '../components/ventas/DetalleVentaModal'
 import { DetalleCajaModal } from '../components/caja/DetalleCajaModal'
+import { HelpButton } from '../components/common/HelpButton'
+import { SectionGuide } from '../components/common/SectionGuide'
 import { exportarCaja } from '../utils/exportCaja'
 import { cajaService } from '../services/caja'
+import { MobileActions } from '../components/common/MobileActions'
+
 export const Caja = () => {
   const { user } = useAuthStore()
   const {
@@ -45,15 +49,15 @@ export const Caja = () => {
   const [modalAbrir, setModalAbrir] = useState(false)
   const [modalMovimiento, setModalMovimiento] = useState(false)
   const [modalCerrar, setModalCerrar] = useState(false)
- const [mostrarHistorial, setMostrarHistorial] = useState(false)
-const [modalDetalleVenta, setModalDetalleVenta] = useState(false)
-const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
+  const [mostrarHistorial, setMostrarHistorial] = useState(false)
+  const [modalDetalleVenta, setModalDetalleVenta] = useState(false)
+  const [ventaSeleccionada, setVentaSeleccionada] = useState(null)
 
-// Modal detalle caja del historial
-const [cajaSeleccionada, setCajaSeleccionada] = useState(null)
-const [movimientosCajaSeleccionada, setMovimientosCajaSeleccionada] = useState([])
+  // Modal detalle caja del historial
+  const [cajaSeleccionada, setCajaSeleccionada] = useState(null)
+  const [movimientosCajaSeleccionada, setMovimientosCajaSeleccionada] = useState([])
 
-// Form Abrir Caja
+  // Form Abrir Caja
   const [montoInicial, setMontoInicial] = useState('')
 
   // Form Movimiento
@@ -61,23 +65,31 @@ const [movimientosCajaSeleccionada, setMovimientosCajaSeleccionada] = useState([
   const [montoMovimiento, setMontoMovimiento] = useState('')
   const [conceptoMovimiento, setConceptoMovimiento] = useState('')
 
-  // Form Cerrar Caja
   const [montoReal, setMontoReal] = useState('')
   const [observaciones, setObservaciones] = useState('')
+  const [revelarMontoEsperado, setRevelarMontoEsperado] = useState(false)
+  const [modalAyuda, setModalAyuda] = useState(false)
+
+  const pasosAyudaCaja = [
+    { title: '🎬 Abrir Caja', description: 'Antes de vender, abre la caja con el dinero en efectivo que tienes para dar cambio.' },
+    { title: '📝 Registrar Movimientos', description: 'Anota si sacas dinero para un gasto (ej: pagar la luz) o si entra dinero extra.' },
+    { title: '🛑 Cierre Ciego', description: 'Al terminar el día, cuenta tu dinero físico e ingrésalo sin ver el sistema. Así evitas errores o faltantes "tapados".' },
+    { title: '📅 Historial', description: 'Revisa cierres de días anteriores para llevar un control total de tu dinero.' }
+  ]
 
   // Cargar caja al montar
   useEffect(() => {
     if (user?.negocio_id) {
-  verificarCajaAbierta(user.negocio_id)
-  cargarHistorial(user.negocio_id)
-}
+      verificarCajaAbierta(user.negocio_id)
+      cargarHistorial(user.negocio_id)
+    }
   }, [user])
 
   // Abrir caja
   const handleAbrirCaja = async (e) => {
     e.preventDefault()
     try {
-     await abrirCaja(user.negocio_id, user.id, parseFloat(montoInicial))
+      await abrirCaja(user.negocio_id, user.id, parseFloat(montoInicial))
       toast.success('✅ Caja abierta')
       setModalAbrir(false)
       setMontoInicial('')
@@ -109,7 +121,7 @@ const [movimientosCajaSeleccionada, setMovimientosCajaSeleccionada] = useState([
     e.preventDefault()
     try {
       const cajaFinal = await cerrarCaja(parseFloat(montoReal), observaciones)
-      
+
       const diferencia = cajaFinal.diferencia
       if (diferencia === 0) {
         toast.success('✅ Caja cerrada - Cuadra perfecto')
@@ -118,14 +130,14 @@ const [movimientosCajaSeleccionada, setMovimientosCajaSeleccionada] = useState([
       } else {
         toast.error(`⚠️ Caja cerrada - Faltan $${Math.abs(diferencia).toFixed(2)}`)
       }
-      
+
       setModalCerrar(false)
       setMontoReal('')
       setObservaciones('')
       cargarHistorial(user.negocio_id)
     } catch (error) {
       toast.error(error.message)
- }
+    }
   }
 
   // Ver detalle de venta
@@ -133,18 +145,18 @@ const [movimientosCajaSeleccionada, setMovimientosCajaSeleccionada] = useState([
     setVentaSeleccionada(ventaId)
     setModalDetalleVenta(true)
   }
-// Exportar caja
+  // Exportar caja
   const handleExportarCaja = async (caja) => {
     try {
       toast.loading('Generando Excel...')
-      
+
       // Obtener ventas y movimientos de esta caja
       const ventas = await cajaService.obtenerVentasDeCaja(caja.id)
       const movimientos = await cajaService.obtenerMovimientos(caja.id)
-      
+
       // Exportar
       await exportarCaja(caja, ventas, movimientos)
-      
+
       toast.dismiss()
       toast.success('✅ Caja exportada correctamente')
     } catch (error) {
@@ -177,331 +189,390 @@ const [movimientosCajaSeleccionada, setMovimientosCajaSeleccionada] = useState([
       .filter(m => m.tipo === 'ingreso')
       .reduce((sum, m) => sum + parseFloat(m.monto), 0),
     egresos: movimientos
-      .filter(m => m.tipo === 'egreso' || m.tipo === 'gasto')
+      .filter(m => m.tipo === 'egreso' || m.tipo === 'gasto' || m.tipo === 'retiro')
+      .reduce((sum, m) => sum + parseFloat(m.monto), 0),
+    gastosNegocio: movimientos
+      .filter(m => m.tipo === 'gasto')
       .reduce((sum, m) => sum + parseFloat(m.monto), 0)
   }
 
   return (
-  <Layout>
-    <div className="max-w-7xl mx-auto px-4 py-8">
-
-      {/* Contenido */}
+    <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {cargando ? (
-          <div className="text-center py-12">
-            <p className="text-xl text-gray-600">Cargando...</p>
+        {/* Header */}
+        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-4xl font-bold text-primary dark:text-primary-light italic">💰 Caja</h1>
+              <HelpButton onClick={() => setModalAyuda(true)} />
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 font-medium italic">Controla el dinero de tu local en tiempo real.</p>
           </div>
-        ) : !cajaActual ? (
-          /* Sin caja abierta */
-          <div className="max-w-2xl mx-auto">
-            <Card className="text-center py-12">
-              <div className="text-6xl mb-4">🔒</div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                No hay caja abierta
-              </h2>
-              <p className="text-gray-600 mb-6">
-                Abre la caja para comenzar a registrar movimientos
-              </p>
-              <Button onClick={() => setModalAbrir(true)}>
-                Abrir Caja
-              </Button>
-            </Card>
+        </div>
 
-            {/* Historial */}
-            {historial.length > 0 && (
-              <div className="mt-8">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-gray-800">
-                    Historial de Cajas
-                  </h3>
-                </div>
-                <div className="space-y-3">
-                  {historial.slice(0, 5).map(caja => (
-                    <Card
-                      key={caja.id}
-                      padding="p-4"
-                      className="cursor-pointer hover:shadow-lg transition-shadow"
-                      onClick={() => verDetallesCaja(caja)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-800">
-                            {format(new Date(caja.fecha_apertura), "dd/MM/yyyy HH:mm", { locale: es })}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Usuario: {caja.usuarios?.nombre || 'N/A'}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-lg">
-                            ${caja.monto_real?.toFixed(2) || '0.00'}
-                          </p>
-                          {caja.diferencia !== null && caja.diferencia !== 0 && (
-                            <Badge variant={caja.diferencia > 0 ? 'success' : 'danger'}>
-                              {caja.diferencia > 0 ? '+' : ''}{caja.diferencia.toFixed(2)}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="ml-4">
-                          <Button
-                            variant="secondary"
-                            className="text-sm py-2 px-4"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleExportarCaja(caja)
-                            }}
-                          >
-                            📥 Exportar
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          /* Caja abierta */
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Columna izquierda: Info y acciones */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Estado de caja */}
-              <Card>
-                <div className="text-center mb-4">
-                  <Badge variant="success">✓ Caja Abierta</Badge>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between border-b pb-2">
-                    <span className="text-gray-600">Monto inicial:</span>
-                    <span className="font-bold">${cajaActual.monto_inicial.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between border-b pb-2">
-                    <span className="text-gray-600">Ingresos:</span>
-                    <span className="font-bold text-green-600">+${totales.ingresos.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between border-b pb-2">
-                    <span className="text-gray-600">Egresos:</span>
-                    <span className="font-bold text-red-600">-${totales.egresos.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between pt-2">
-                    <span className="text-lg font-semibold">Total esperado:</span>
-                    <span className="text-2xl font-bold text-primary">
-                      ${(cajaActual.monto_esperado || 0).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
+        {/* Contenido */}
+        <div className="mx-auto">
+          {cargando ? (
+            <div className="text-center py-12">
+              <p className="text-xl text-gray-600">Cargando...</p>
+            </div>
+          ) : !cajaActual ? (
+            /* Sin caja abierta */
+            <div className="max-w-2xl mx-auto">
+              <Card className="text-center py-12">
+                <div className="text-6xl mb-4">🔒</div>
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+                  No hay caja abierta
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Abre la caja para comenzar a registrar movimientos
+                </p>
+                <Button onClick={() => setModalAbrir(true)}>
+                  Abrir Caja
+                </Button>
               </Card>
 
-              {/* Botones de acción */}
-              <div className="space-y-3">
-                <Button
-                  className="w-full"
-                  variant="success"
-                  onClick={() => setModalMovimiento(true)}
-                >
-                  + Registrar Movimiento
-                </Button>
-                <Button
-                  className="w-full"
-                  variant="danger"
-                  onClick={() => setModalCerrar(true)}
-                >
-                  Cerrar Caja
-                </Button>
+              {/* Historial */}
+              {historial.length > 0 && (
+                <div className="mt-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">
+                      Historial de Cajas
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    {historial.slice(0, 5).map(caja => (
+                      <Card
+                        key={caja.id}
+                        padding="p-4"
+                        className="cursor-pointer hover:shadow-lg transition-shadow"
+                        onClick={() => verDetallesCaja(caja)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-800 dark:text-gray-100">
+                              {format(new Date(caja.fecha_apertura), "dd/MM/yyyy HH:mm", { locale: es })}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Usuario: {caja.usuarios?.nombre || 'N/A'}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-lg dark:text-white">
+                              ${caja.monto_real?.toFixed(2) || '0.00'}
+                            </p>
+                            {caja.diferencia !== null && caja.diferencia !== 0 && (
+                              <Badge variant={caja.diferencia > 0 ? 'success' : 'danger'}>
+                                {caja.diferencia > 0 ? '+' : ''}{caja.diferencia.toFixed(2)}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <Button
+                              variant="secondary"
+                              className="text-sm py-2 px-4"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleExportarCaja(caja)
+                              }}
+                            >
+                              📥 Exportar
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Caja abierta */
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Columna izquierda: Info y acciones */}
+              <div className="lg:col-span-1 space-y-6">
+                {/* Estado de caja */}
+                <Card>
+                  <div className="text-center mb-4">
+                    <Badge variant="success">✓ Caja Abierta</Badge>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between border-b dark:border-gray-700 pb-2">
+                      <span className="text-gray-600 dark:text-gray-400">Monto inicial:</span>
+                      <span className="font-bold dark:text-gray-100">${cajaActual.monto_inicial.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between border-b dark:border-gray-700 pb-2">
+                      <span className="text-gray-600 dark:text-gray-400">Ingresos:</span>
+                      <span className="font-bold text-green-600 dark:text-green-400">+${totales.ingresos.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between border-b dark:border-gray-700 pb-2">
+                      <span className="text-gray-600 dark:text-gray-400">Egresos:</span>
+                      <span className="font-bold text-red-600 dark:text-red-400">-${totales.egresos.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2">
+                      <span className="text-lg font-semibold dark:text-gray-200">Total esperado:</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-2xl font-bold text-primary dark:text-primary-light ${!revelarMontoEsperado ? 'blur-md select-none' : ''}`}>
+                          ${(cajaActual.monto_esperado || 0).toFixed(2)}
+                        </span>
+                        <button
+                          onClick={() => setRevelarMontoEsperado(!revelarMontoEsperado)}
+                          className="text-gray-400 hover:text-primary transition-colors"
+                          title={revelarMontoEsperado ? "Ocultar" : "Mostrar"}
+                        >
+                          {revelarMontoEsperado ? '👁️‍🗨️' : '👁️'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Botones de acción */}
+                <div className="space-y-3">
+                  <Button
+                    className="w-full"
+                    variant="success"
+                    onClick={() => setModalMovimiento(true)}
+                  >
+                    + Registrar Movimiento
+                  </Button>
+                  <Button
+                    className="w-full"
+                    variant="danger"
+                    onClick={() => setModalCerrar(true)}
+                  >
+                    Cerrar Caja
+                  </Button>
+                </div>
+              </div>
+
+              {/* Columna derecha: Movimientos */}
+              <div className="lg:col-span-2">
+                <Card>
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">
+                    Movimientos del día ({movimientos.length})
+                  </h3>
+                  {movimientos.length === 0 ? (
+                    <p className="text-center text-gray-500 py-8">
+                      No hay movimientos registrados
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                      {movimientos.map(mov => (
+                        <div
+                          key={mov.id}
+                          className={`flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg ${mov.venta_id ? 'hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors' : ''
+                            }`}
+                          onClick={() => mov.venta_id && handleVerDetalleVenta(mov.venta_id)}
+                        >
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-800 dark:text-gray-100">
+                              {mov.concepto}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {format(new Date(mov.fecha), "HH:mm", { locale: es })}
+                            </p>
+                            {mov.venta_id && (
+                              <p className="text-xs text-primary font-semibold mt-1">
+                                Click para ver detalle →
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={
+                              mov.tipo === 'ingreso' ? 'success' :
+                                mov.tipo === 'gasto' ? 'danger' : 'warning'
+                            }>
+                              {mov.tipo === 'ingreso' ? '+' : '-'}${parseFloat(mov.monto).toFixed(2)}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
               </div>
             </div>
-
-            {/* Columna derecha: Movimientos */}
-            <div className="lg:col-span-2">
-              <Card>
-                <h3 className="text-xl font-bold text-gray-800 mb-4">
-                  Movimientos del día ({movimientos.length})
-                </h3>
-                {movimientos.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">
-                    No hay movimientos registrados
-                  </p>
-               ) : (
-  <div className="space-y-2 max-h-[600px] overflow-y-auto">
-    {movimientos.map(mov => (
-      <div
-        key={mov.id}
-        className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg ${
-          mov.venta_id ? 'hover:bg-gray-100 cursor-pointer transition-colors' : ''
-        }`}
-        onClick={() => mov.venta_id && handleVerDetalleVenta(mov.venta_id)}
-      >
-        <div className="flex-1">
-          <p className="font-semibold text-gray-800">
-            {mov.concepto}
-          </p>
-          <p className="text-xs text-gray-500">
-            {format(new Date(mov.fecha), "HH:mm", { locale: es })}
-          </p>
-          {mov.venta_id && (
-            <p className="text-xs text-primary font-semibold mt-1">
-              Click para ver detalle →
-            </p>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={
-            mov.tipo === 'ingreso' ? 'success' :
-            mov.tipo === 'egreso' ? 'warning' : 'danger'
-          }>
-            {mov.tipo === 'ingreso' ? '+' : '-'}${parseFloat(mov.monto).toFixed(2)}
-          </Badge>
-        </div>
-      </div>
-    ))}
-  </div>
-)}
-              </Card>
-            </div>
-          </div>
-        )}
-      </div>
 
-      {/* Modal Abrir Caja */}
-      <Modal
-        isOpen={modalAbrir}
-        onClose={() => setModalAbrir(false)}
-        title="Abrir Caja"
-      >
-        <form onSubmit={handleAbrirCaja} className="space-y-4">
-          <Input
-            label="Monto inicial en caja *"
-            type="number"
-            step="0.01"
-            value={montoInicial}
-            onChange={e => setMontoInicial(e.target.value)}
-            placeholder="0.00"
-            required
-          />
-          <p className="text-sm text-gray-600">
-            Ingresa el dinero con el que comienzas el día
-          </p>
-          <Button type="submit" className="w-full">
-            Abrir Caja
-          </Button>
-        </form>
-      </Modal>
-
-      {/* Modal Registrar Movimiento */}
-      <Modal
-        isOpen={modalMovimiento}
-        onClose={() => setModalMovimiento(false)}
-        title="Registrar Movimiento"
-      >
-        <form onSubmit={handleRegistrarMovimiento} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tipo de movimiento *
-            </label>
-            <div className="flex gap-3">
-              <label className="flex-1">
-                <input
-                  type="radio"
-                  name="tipo"
-                  value="ingreso"
-                  checked={tipoMovimiento === 'ingreso'}
-                  onChange={e => setTipoMovimiento(e.target.value)}
-                  className="mr-2"
-                />
-                Ingreso
-              </label>
-              <label className="flex-1">
-                <input
-                  type="radio"
-                  name="tipo"
-                  value="gasto"
-                  checked={tipoMovimiento === 'gasto'}
-                  onChange={e => setTipoMovimiento(e.target.value)}
-                  className="mr-2"
-                />
-                Gasto
-              </label>
-            </div>
-          </div>
-          <Input
-            label="Monto *"
-            type="number"
-            step="0.01"
-            value={montoMovimiento}
-            onChange={e => setMontoMovimiento(e.target.value)}
-            placeholder="0.00"
-            required
-          />
-          <Input
-            label="Concepto *"
-            value={conceptoMovimiento}
-            onChange={e => setConceptoMovimiento(e.target.value)}
-            placeholder="Ej: Pago a proveedor, Compra de cambio, etc."
-            required
-          />
-          <Button type="submit" className="w-full">
-            Registrar
-          </Button>
-        </form>
-      </Modal>
-
-      {/* Modal Cerrar Caja */}
-      <Modal
-        isOpen={modalCerrar}
-        onClose={() => setModalCerrar(false)}
-        title="Cerrar Caja"
-        maxWidth="max-w-md"
-      >
-        <form onSubmit={handleCerrarCaja} className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-lg mb-4">
-            <p className="text-sm text-gray-600 mb-1">Monto esperado:</p>
-            <p className="text-3xl font-bold text-primary">
-              ${(cajaActual?.monto_esperado || 0).toFixed(2)}
+        {/* Modal Abrir Caja */}
+        <Modal
+          isOpen={modalAbrir}
+          onClose={() => setModalAbrir(false)}
+          title="Abrir Caja"
+        >
+          <form onSubmit={handleAbrirCaja} className="space-y-4">
+            <Input
+              label="Monto inicial en caja *"
+              type="number"
+              step="0.01"
+              value={montoInicial}
+              onChange={e => setMontoInicial(e.target.value)}
+              placeholder="0.00"
+              required
+            />
+            <p className="text-sm text-gray-600">
+              Ingresa el dinero con el que comienzas el día
             </p>
-          </div>
-          <Input
-            label="Monto real en caja *"
-            type="number"
-            step="0.01"
-            value={montoReal}
-            onChange={e => setMontoReal(e.target.value)}
-            placeholder="0.00"
-            required
-          />
-          <Input
-            label="Observaciones (opcional)"
-            value={observaciones}
-            onChange={e => setObservaciones(e.target.value)}
-            placeholder="Ej: Faltó cambio, sobró dinero..."
-          />
-          <p className="text-sm text-gray-600">
-            Cuenta el dinero físico en la caja y compáralo con el monto esperado
-          </p>
-          <Button type="submit" variant="danger" className="w-full">
-            Cerrar Caja
-          </Button>
-        </form>
-      </Modal>
+            <Button type="submit" className="w-full">
+              Abrir Caja
+            </Button>
+          </form>
+        </Modal>
 
-      {/* Modal Detalle Venta */}
-      <DetalleVentaModal
-        isOpen={modalDetalleVenta}
-        onClose={() => {
-          setModalDetalleVenta(false)
-          setVentaSeleccionada(null)
-        }}
-        ventaId={ventaSeleccionada}
-      />
+        {/* Modal Registrar Movimiento */}
+        <Modal
+          isOpen={modalMovimiento}
+          onClose={() => setModalMovimiento(false)}
+          title="Registrar Movimiento"
+        >
+          <form onSubmit={handleRegistrarMovimiento} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tipo de movimiento *
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'ingreso', label: 'Ingreso', color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-200 dark:border-green-900/30' },
+                  { id: 'gasto', label: 'Gasto', color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/20', border: 'border-red-200 dark:border-red-900/30' },
+                  { id: 'retiro', label: 'Retiro', color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-200 dark:border-orange-900/30' }
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setTipoMovimiento(item.id)}
+                    className={`
+                      flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all
+                      ${tipoMovimiento === item.id
+                        ? `${item.bg} ${item.border} ${item.color} scale-105 shadow-sm`
+                        : 'border-transparent bg-gray-50 dark:bg-gray-800 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }
+                    `}
+                  >
+                    <span className="text-sm font-bold">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Input
+              label="Monto *"
+              type="number"
+              step="0.01"
+              value={montoMovimiento}
+              onChange={e => setMontoMovimiento(e.target.value)}
+              placeholder="0.00"
+              required
+            />
+            <Input
+              label="Concepto *"
+              value={conceptoMovimiento}
+              onChange={e => setConceptoMovimiento(e.target.value)}
+              placeholder="Ej: Pago a proveedor, Compra de cambio, etc."
+              required
+            />
+            <Button type="submit" className="w-full">
+              Registrar
+            </Button>
+          </form>
+        </Modal>
 
-      {/* Modal Detalle Caja Historial */}
-      <DetalleCajaModal
-        isOpen={!!cajaSeleccionada}
-        onClose={cerrarDetalleCaja}
-        caja={cajaSeleccionada}
-        movimientos={movimientosCajaSeleccionada}
-      />
-    </div>
+        {/* Modal Cerrar Caja */}
+        <Modal
+          isOpen={modalCerrar}
+          onClose={() => setModalCerrar(false)}
+          title="Cerrar Caja"
+          maxWidth="max-w-md"
+        >
+          <form onSubmit={handleCerrarCaja} className="space-y-4">
+            {(montoReal || revelarMontoEsperado) ? (
+              <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg mb-4 text-center animate-in fade-in slide-in-from-top-2 duration-300">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Monto esperado por el sistema:</p>
+                <p className="text-3xl font-bold text-primary dark:text-primary-light">
+                  ${(cajaActual?.monto_esperado || 0).toFixed(2)}
+                </p>
+                {montoReal && (
+                  <div className="mt-2 pt-2 border-t dark:border-gray-600">
+                    <p className={`text-sm font-bold ${parseFloat(montoReal) === cajaActual?.monto_esperado ? 'text-green-600' : 'text-orange-600'
+                      }`}>
+                      Diferencia: ${(parseFloat(montoReal) - (cajaActual?.monto_esperado || 0)).toFixed(2)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-4 text-center border border-blue-100 dark:border-blue-900/30">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  ⚠️ <b>Cierre Ciego Activo</b>: Ingresa el monto real contado físicamente para ver si la caja cuadra.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setRevelarMontoEsperado(true)}
+                  className="mt-2 text-xs text-blue-600 dark:text-blue-400 underline hover:text-blue-800"
+                >
+                  Revelar monto esperado de todos modos
+                </button>
+              </div>
+            )}
+            <Input
+              label="Monto real en caja *"
+              type="number"
+              step="0.01"
+              value={montoReal}
+              onChange={e => setMontoReal(e.target.value)}
+              placeholder="0.00"
+              required
+            />
+            <Input
+              label="Observaciones (opcional)"
+              value={observaciones}
+              onChange={e => setObservaciones(e.target.value)}
+              placeholder="Ej: Faltó cambio, sobró dinero..."
+            />
+            <p className="text-sm text-gray-600">
+              Cuenta el dinero físico en la caja y compáralo con el monto esperado
+            </p>
+            <Button type="submit" variant="danger" className="w-full">
+              Cerrar Caja
+            </Button>
+          </form>
+        </Modal>
+
+        {/* Modal Detalle Venta */}
+        <DetalleVentaModal
+          isOpen={modalDetalleVenta}
+          onClose={() => {
+            setModalDetalleVenta(false)
+            setVentaSeleccionada(null)
+          }}
+          ventaId={ventaSeleccionada}
+        />
+
+        {/* Modal Detalle Caja Historial */}
+        <DetalleCajaModal
+          isOpen={!!cajaSeleccionada}
+          onClose={cerrarDetalleCaja}
+          caja={cajaSeleccionada}
+          movimientos={movimientosCajaSeleccionada}
+        />
+
+        <SectionGuide
+          isOpen={modalAyuda}
+          onClose={() => setModalAyuda(false)}
+          title="Gestión de Caja"
+          steps={pasosAyudaCaja}
+        />
+        <MobileActions
+          actions={[
+            {
+              label: 'Registrar',
+              icon: '💸',
+              onClick: () => setModalMovimiento(true),
+              variant: 'success'
+            }
+          ]}
+        />
+      </div>
     </Layout>
   )
 }

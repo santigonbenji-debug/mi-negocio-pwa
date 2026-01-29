@@ -55,6 +55,7 @@ export const ventasService = {
       producto_id: item.producto_id || null,
       cantidad: item.cantidad,
       precio_unitario: item.precio_unitario,
+      precio_costo: item.precio_costo || 0,
       descripcion_momento_venta: item.descripcion || item.nombre
     }))
 
@@ -74,52 +75,52 @@ export const ventasService = {
     )
 
     // 4. Si es fiado, crear/actualizar cliente
-if (metodoPago === 'fiado' && clienteNombre) {
-  await this.registrarFiado(negocioId, clienteNombre, total, venta.id)
-}
+    if (metodoPago === 'fiado' && clienteNombre) {
+      await this.registrarFiado(negocioId, clienteNombre, total, venta.id)
+    }
 
     return venta
   },
 
   // Registrar fiado
-async registrarFiado(negocioId, clienteNombre, monto, ventaId) {
-  // Buscar cliente existente
-  const { data: clienteExistente } = await supabase
-    .from('fiados')
-    .select('id')
-    .eq('negocio_id', negocioId)
-    .eq('cliente_nombre', clienteNombre)
-   .maybeSingle()
-
-  let fiadoId
-
-  if (clienteExistente) {
-    fiadoId = clienteExistente.id
-  } else {
-    // Crear nuevo cliente
-    const { data: nuevoCliente } = await supabase
+  async registrarFiado(negocioId, clienteNombre, monto, ventaId) {
+    // Buscar cliente existente
+    const { data: clienteExistente } = await supabase
       .from('fiados')
-      .insert({
-        negocio_id: negocioId,
-        cliente_nombre: clienteNombre
-      })
-      .select()
-      .single()
-    
-    fiadoId = nuevoCliente.id
-  }
+      .select('id')
+      .eq('negocio_id', negocioId)
+      .eq('cliente_nombre', clienteNombre)
+      .maybeSingle()
 
-  // Registrar movimiento de compra CON REFERENCIA
-  await supabase
-    .from('fiados_movimientos')
-    .insert({
-      fiado_id: fiadoId,
-      tipo: 'compra',
-      monto,
-      descripcion: `Venta #${ventaId.slice(0, 8)}`,
-      venta_id: ventaId
-    })
-},
+    let fiadoId
+
+    if (clienteExistente) {
+      fiadoId = clienteExistente.id
+    } else {
+      // Crear nuevo cliente
+      const { data: nuevoCliente } = await supabase
+        .from('fiados')
+        .insert({
+          negocio_id: negocioId,
+          cliente_nombre: clienteNombre
+        })
+        .select()
+        .single()
+
+      fiadoId = nuevoCliente.id
+    }
+
+    // Registrar movimiento de compra CON REFERENCIA
+    await supabase
+      .from('fiados_movimientos')
+      .insert({
+        fiado_id: fiadoId,
+        tipo: 'compra',
+        monto,
+        descripcion: `Venta #${ventaId.slice(0, 8)}`,
+        venta_id: ventaId
+      })
+  },
 
   // Obtener ventas del día
   async obtenerVentasDelDia(negocioId) {
@@ -213,7 +214,7 @@ async registrarFiado(negocioId, clienteNombre, monto, ventaId) {
     ventas?.forEach(venta => {
       const monto = parseFloat(venta.total)
       totales.total += monto
-      
+
       if (venta.metodo_pago === 'efectivo') totales.efectivo += monto
       if (venta.metodo_pago === 'tarjeta') totales.tarjeta += monto
       if (venta.metodo_pago === 'fiado') totales.fiado += monto
