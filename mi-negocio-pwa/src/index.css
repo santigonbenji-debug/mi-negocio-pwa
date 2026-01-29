@@ -7,3 +7,28 @@
   padding: 0;
   box-sizing: border-box;
 }
+
+/* Prevenir overscroll blanco */
+html {
+  background-color: #f3f4f6; /* gray-100 */
+  overscroll-behavior: none;
+}
+
+html.dark {
+  background-color: #111827; /* gray-900 */
+}
+
+body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ocultar scrollbars en mobile pero mantener funcionalidad */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

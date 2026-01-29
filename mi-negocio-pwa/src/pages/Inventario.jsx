@@ -415,6 +415,25 @@ export const Inventario = () => {
           </button>
         </div>
 
+        {/* Dropdown de categorías para mobile */}
+        {categorias.length > 0 && (
+          <div className="mb-4 lg:hidden">
+            <select
+              value={filtroTipo}
+              onChange={e => setFiltroTipo(e.target.value)}
+              className="w-full p-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl border-2 border-gray-200 dark:border-gray-700 font-semibold"
+            >
+              <option value="todos">🏷️ Todas las categorías</option>
+              <option value="sin-categoria">📦 Sin categoría</option>
+              {categorias.map(cat => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.nombre} ({productos.filter(p => p.categoria_id === cat.id).length})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <div className="lg:col-span-3">
             {cargando ? (

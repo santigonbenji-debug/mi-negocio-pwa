@@ -239,7 +239,7 @@ export const PuntoVenta = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className={`lg:col-span-2 space-y-4 ${mostrarVentas ? 'hidden lg:block' : 'block'}`}>
 
-              <div className="sticky top-16 z-[40] -mx-2 sm:mx-0">
+              <div className="sticky top-16 z-[40] -mx-2 sm:mx-0" style={{ scrollMarginTop: '4rem' }}>
                 <Card className="shadow-2xl border-primary/30 py-4">
                   <div className="flex gap-2 relative">
                     <div className="flex-1">
@@ -248,14 +248,16 @@ export const PuntoVenta = () => {
                         value={busqueda}
                         onChange={e => setBusqueda(e.target.value)}
                         className="text-lg py-4 sm:py-6"
-                        autoFocus
+                        onFocus={e => e.target.setAttribute('readonly', 'readonly')}
+                        onTouchStart={e => e.target.removeAttribute('readonly')}
+                        onClick={e => e.target.removeAttribute('readonly')}
                       />
                     </div>
                     <Button variant="secondary" onClick={() => setMostrarScanner(true)} className="px-6">📷</Button>
 
                     {productosFiltrados.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white dark:bg-gray-800 border-2 border-primary/20 rounded-2xl shadow-2xl max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700 animate-in fade-in slide-in-from-top-2">
-                        {productosFiltrados.map(producto => (
+                      <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white dark:bg-gray-800 border-2 border-primary/20 rounded-2xl shadow-2xl max-h-64 sm:max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700 animate-in fade-in slide-in-from-top-2">
+                        {productosFiltrados.slice(0, 8).map(producto => (
                           <button
                             key={producto.id}
                             onClick={() => handleAgregarProducto(producto)}
@@ -390,11 +392,32 @@ export const PuntoVenta = () => {
           </div>
           {metodoPago === 'fiado' && (
             <div className="space-y-3">
-              <select value={clienteNombre} onChange={e => { setClienteNombre(e.target.value); setEsClienteNuevo(false); }} className="w-full p-4 bg-gray-100 dark:bg-gray-700 dark:text-gray-200 rounded-2xl font-black border-none">
-                <option value="">-- ELIGE CLIENTE --</option>
-                {clientesFiados.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
-              </select>
-              <Input placeholder="O escribe nombre nuevo..." value={esClienteNuevo ? clienteNombre : ''} onChange={e => { setClienteNombre(e.target.value); setEsClienteNuevo(true); }} />
+              {clientesFiados.length > 0 && (
+                <select
+                  value={!esClienteNuevo ? clienteNombre : ''}
+                  onChange={e => {
+                    setClienteNombre(e.target.value);
+                    setEsClienteNuevo(false);
+                  }}
+                  className="w-full p-4 bg-gray-100 dark:bg-gray-700 dark:text-gray-200 rounded-2xl font-black border-2 border-gray-200 dark:border-gray-600"
+                >
+                  <option value="">-- ELIGE CLIENTE EXISTENTE --</option>
+                  {clientesFiados.map(c => <option key={c.id} value={c.nombre}>{c.nombre} (Deuda: ${c.saldo_actual?.toFixed(2) || '0.00'})</option>)}
+                </select>
+              )}
+              <div className="relative">
+                <Input
+                  placeholder="O escribe nombre nuevo..."
+                  value={esClienteNuevo ? clienteNombre : ''}
+                  onChange={e => {
+                    setClienteNombre(e.target.value);
+                    setEsClienteNuevo(true);
+                  }}
+                />
+                {!esClienteNuevo && clienteNombre && (
+                  <p className="text-xs text-green-600 dark:text-green-400 font-bold mt-1">Cliente seleccionado: {clienteNombre}</p>
+                )}
+              </div>
             </div>
           )}
           <Button type="submit" className="w-full py-6 text-xl font-black" disabled={procesando || carrito.length === 0}>{procesando ? '⌛ PROCESANDO...' : 'CONFIRMAR ✅'}</Button>
