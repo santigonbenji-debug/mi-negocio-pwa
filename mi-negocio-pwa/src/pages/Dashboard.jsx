@@ -30,6 +30,7 @@ import { SectionGuide } from '../components/common/SectionGuide'
 import { MobileActions } from '../components/common/MobileActions'
 
 export const Dashboard = () => {
+  
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const { esAdmin } = usePermisos()

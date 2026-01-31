@@ -25,6 +25,7 @@ import { usePermisos } from '../hooks/usePermisos'
 import { exportarInventario } from '../utils/exportInventario'
 import { ScannerBarcode } from '../components/common/ScannerBarcode'
 import { MobileActions } from '../components/common/MobileActions'
+import { useLicenciaContext } from '../contexts/LicenciaContext'
 
 // Componente interno para el contenido de categorías
 const CategoriesContent = ({
@@ -116,6 +117,10 @@ const CategoriesContent = ({
 
 export const Inventario = () => {
   const { user } = useAuthStore()
+
+  // Estado de licencia
+  const { puedeEditar, modoSoloLectura } = useLicenciaContext()
+
   const { puedeModificarInventario, puedeEliminarProductos } = usePermisos()
   const {
     categorias,
@@ -347,6 +352,23 @@ export const Inventario = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Banner de solo lectura */}
+        {modoSoloLectura && (
+          <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <span className="text-2xl">🔒</span>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">Modo Solo Lectura</h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  Podés consultar tu inventario pero no modificarlo. Renová tu licencia para editar.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-3 mb-2">
@@ -357,8 +379,8 @@ export const Inventario = () => {
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {seleccionados.length > 0 && (
-              <Button variant="primary" onClick={() => setModalMasivo(true)} className="animate-bounce shadow-xl">
-                🚀 Aumento Masivo ({seleccionados.length})
+              <Button variant="primary" onClick={() => setModalMasivo(true)} className="animate-bounce shadow-xl" disabled={!puedeEditar}>
+                {!puedeEditar ? '🔒 Bloqueado' : `🚀 Aumento Masivo (${seleccionados.length})`}
               </Button>
             )}
             <Button
@@ -376,8 +398,12 @@ export const Inventario = () => {
             </Button>
             {puedeModificarInventario && (
               <>
-                <Button variant="secondary" onClick={() => setModalCategoria(true)} className="flex-1 sm:flex-none">🏷️ Cat.</Button>
-                <Button onClick={() => setModalAgregar(true)} className="flex-1 sm:flex-none whitespace-nowrap">+ Nuevo</Button>
+                <Button variant="secondary" onClick={() => setModalCategoria(true)} className="flex-1 sm:flex-none" disabled={!puedeEditar}>
+                  {!puedeEditar ? '🔒' : '🏷️'} Cat.
+                </Button>
+                <Button onClick={() => setModalAgregar(true)} className="flex-1 sm:flex-none whitespace-nowrap" disabled={!puedeEditar}>
+                  {!puedeEditar ? '🔒 Bloqueado' : '+ Nuevo'}
+                </Button>
               </>
             )}
           </div>
@@ -443,7 +469,11 @@ export const Inventario = () => {
                 <div className="text-6xl mb-4">📦</div>
                 <h2 className="text-2xl font-bold dark:text-gray-100 mb-2">No hay productos</h2>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">{busqueda ? 'No se encontró nada' : '¡Crea el primero!'}</p>
-                {puedeModificarInventario && <Button onClick={() => setModalAgregar(true)}>+ Agregar Producto</Button>}
+                {puedeModificarInventario && (
+                  <Button onClick={() => setModalAgregar(true)} disabled={!puedeEditar}>
+                    {!puedeEditar ? '🔒 Bloqueado' : '+ Agregar Producto'}
+                  </Button>
+                )}
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -462,9 +492,9 @@ export const Inventario = () => {
                         <p className={`font-bold mt-1 ${stockBajo ? 'text-red-500' : 'text-gray-600 dark:text-gray-400'}`}>Stock: {p.stock_actual} {p.es_por_kg ? 'kg' : 'un.'}</p>
                       </div>
                       <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
-                        <Button variant="secondary" className="flex-1 py-1.5 text-xs" onClick={() => handleAgregarStock(p.id, 1)}>+1</Button>
-                        <Button variant="secondary" className="flex-1 py-1.5 text-xs" onClick={() => handleAgregarStock(p.id, 5)}>+5</Button>
-                        <Button variant="primary" className="px-2.5 py-1.5 text-sm" onClick={() => abrirModalEditar(p)}>✏️</Button>
+                        <Button variant="secondary" className="flex-1 py-1.5 text-xs" onClick={() => handleAgregarStock(p.id, 1)} disabled={!puedeEditar}>+1</Button>
+                        <Button variant="secondary" className="flex-1 py-1.5 text-xs" onClick={() => handleAgregarStock(p.id, 5)} disabled={!puedeEditar}>+5</Button>
+                        <Button variant="primary" className="px-2.5 py-1.5 text-sm" onClick={() => abrirModalEditar(p)} disabled={!puedeEditar}>{!puedeEditar ? '🔒' : '✏️'}</Button>
                         {puedeEliminarProductos && (
                           <button
                             onClick={() => handleEliminar(p.id, p.nombre)}
@@ -562,7 +592,9 @@ export const Inventario = () => {
               <button onClick={() => setTipoAumento('porcentaje')} className={`flex-1 p-3 rounded-xl font-bold transition-colors ${tipoAumento === 'porcentaje' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 dark:text-gray-200'}`}>% Porc.</button>
             </div>
             <Input type="number" label="Cuánto aumentar" value={valorAumento} onChange={e => setValorAumento(e.target.value)} placeholder="0" />
-            <Button className="w-full h-14 text-lg" onClick={handleActualizacionMasiva}>Confirmar Cambio</Button>
+            <Button className="w-full h-14 text-lg" onClick={handleActualizacionMasiva} disabled={!puedeEditar}>
+              {!puedeEditar ? '🔒 Licencia expirada' : 'Confirmar Cambio'}
+            </Button>
           </div>
         </Modal>
 
@@ -606,7 +638,9 @@ export const Inventario = () => {
                 <label className="dark:text-gray-200">Es producto por KG</label>
               </div>
             )}
-            <Button type="submit" className="w-full">{modalEditar ? 'Guardar' : 'Crear'}</Button>
+            <Button type="submit" className="w-full" disabled={!puedeEditar}>
+              {!puedeEditar ? '🔒 Licencia expirada' : (modalEditar ? 'Guardar' : 'Crear')}
+            </Button>
           </form>
         </Modal>
       </div>
@@ -628,10 +662,11 @@ export const Inventario = () => {
       <MobileActions
         actions={[
           {
-            label: 'Cat.',
+            label: !puedeEditar ? '🔒' : 'Cat.',
             icon: '🏷️',
-            onClick: () => setModalCategoria(true),
-            variant: 'secondary'
+            onClick: () => puedeEditar && setModalCategoria(true),
+            variant: 'secondary',
+            disabled: !puedeEditar
           },
           {
             label: 'Escanear',
@@ -640,10 +675,11 @@ export const Inventario = () => {
             variant: 'secondary'
           },
           {
-            label: 'Nuevo',
+            label: !puedeEditar ? '🔒 Bloqueado' : 'Nuevo',
             icon: '➕',
-            onClick: () => setModalAgregar(true),
-            variant: 'primary'
+            onClick: () => puedeEditar && setModalAgregar(true),
+            variant: 'primary',
+            disabled: !puedeEditar
           }
         ]}
       />

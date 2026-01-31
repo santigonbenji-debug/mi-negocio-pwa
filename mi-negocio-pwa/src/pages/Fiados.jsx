@@ -14,9 +14,13 @@ import { es } from 'date-fns/locale'
 import { DetalleVentaModal } from '../components/ventas/DetalleVentaModal'
 import { HelpButton } from '../components/common/HelpButton'
 import { SectionGuide } from '../components/common/SectionGuide'
+import { useLicenciaContext } from '../contexts/LicenciaContext'
 
 export const Fiados = () => {
   const { user } = useAuthStore()
+
+  // Estado de licencia
+  const { puedeEditar, modoSoloLectura } = useLicenciaContext()
   const {
     clientes,
     clienteActual,
@@ -148,6 +152,23 @@ export const Fiados = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Banner de solo lectura */}
+        {modoSoloLectura && (
+          <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <span className="text-2xl">🔒</span>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">Modo Solo Lectura</h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  Podés consultar cuentas corrientes pero no registrar movimientos. Renová tu licencia.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mb-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
             <div className="flex items-center gap-3">
@@ -163,8 +184,8 @@ export const Fiados = () => {
               >
                 📊 Exportar Excel
               </Button>
-              <Button onClick={() => setModalNuevo(true)} className="flex-1 md:flex-none whitespace-nowrap">
-                + Agregar Cliente
+              <Button onClick={() => setModalNuevo(true)} className="flex-1 md:flex-none whitespace-nowrap" disabled={!puedeEditar}>
+                {!puedeEditar ? '🔒 Bloqueado' : '+ Agregar Cliente'}
               </Button>
             </div>
           </div>
@@ -212,8 +233,8 @@ export const Fiados = () => {
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Los clientes fiados aparecerán aquí cuando realices ventas con el método "Fiado".
             </p>
-            <Button onClick={() => setModalNuevo(true)}>
-              + Agregar Primer Cliente
+            <Button onClick={() => setModalNuevo(true)} disabled={!puedeEditar}>
+              {!puedeEditar ? '🔒 Bloqueado' : '+ Agregar Primer Cliente'}
             </Button>
           </Card>
         ) : (
@@ -266,8 +287,9 @@ export const Fiados = () => {
                           e.stopPropagation()
                           handleEliminarCliente(cliente)
                         }}
+                        disabled={!puedeEditar}
                       >
-                        🗑️ Eliminar
+                        {!puedeEditar ? '🔒' : '🗑️ Eliminar'}
                       </Button>
                     )}
                   </div>
@@ -308,8 +330,9 @@ export const Fiados = () => {
                 variant="success"
                 className="w-full mt-3"
                 onClick={handleAbrirPago}
+                disabled={!puedeEditar}
               >
-                {parseFloat(clienteActual.deuda_total) <= 0 ? 'Agregar Saldo' : 'Registrar Pago'}
+                {!puedeEditar ? '🔒 Bloqueado' : (parseFloat(clienteActual.deuda_total) <= 0 ? 'Agregar Saldo' : 'Registrar Pago')}
               </Button>
             </div>
 
@@ -403,8 +426,8 @@ export const Fiados = () => {
               >
                 Cancelar
               </Button>
-              <Button type="submit" variant="success" className="flex-1">
-                Confirmar Pago
+              <Button type="submit" variant="success" className="flex-1" disabled={!puedeEditar}>
+                {!puedeEditar ? '🔒 Licencia expirada' : 'Confirmar Pago'}
               </Button>
             </div>
           </form>
@@ -437,8 +460,8 @@ export const Fiados = () => {
             placeholder="1234567890"
           />
 
-          <Button type="submit" className="w-full">
-            Agregar Cliente
+          <Button type="submit" className="w-full" disabled={!puedeEditar}>
+            {!puedeEditar ? '🔒 Licencia expirada' : 'Agregar Cliente'}
           </Button>
         </form>
       </Modal>

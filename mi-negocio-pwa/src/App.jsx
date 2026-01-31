@@ -13,21 +13,57 @@ import { Usuarios } from './pages/Usuarios'
 import { RequireAdmin } from './components/common/RequireAdmin'
 import { useAuthStore } from './store/authStore'
 import { useEffect } from 'react'
-
+import { LicenciaProvider, useLicenciaContext } from './contexts/LicenciaContext'
+import { ModalLicenciaExpirada } from './components/common/ModalLicenciaExpirada'
+import { BadgeLicencia } from './components/common/BadgeLicencia'
+import { Admin } from './pages/Admin'
 function App() {
   const { user, loading, inicializar } = useAuthStore()
 
   useEffect(() => {
     inicializar()
-  }, [inicializar])
+  }, [])
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-xl text-gray-600">Cargando...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando...</p>
         </div>
+      </div>
+    )
+  }
+
+  return (
+    <LicenciaProvider>
+      <AppContent user={user} />
+    </LicenciaProvider>
+  )
+}
+
+// Componente separado que usa el context
+function AppContent({ user }) {
+  const { 
+    expirado, 
+    diasRestantes, 
+    cargando: cargandoLicencia,
+    modoSoloLectura,
+    modalAbierto,
+    activarModoSoloLectura
+  } = useLicenciaContext()
+
+  // Si la licencia expiró y no está en modo solo lectura, mostrar modal
+  if (user && expirado && !modoSoloLectura && !cargandoLicencia) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <Toaster position="top-right" />
+        <ModalLicenciaExpirada
+          isOpen={modalAbierto}
+          diasRestantes={diasRestantes}
+          onVerHistorial={activarModoSoloLectura}
+          onCerrar={null}
+        />
       </div>
     )
   }
@@ -35,97 +71,69 @@ function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-right" />
+      
+      {/* Badge de licencia en todas las páginas autenticadas */}
+      {user && (
+        <div className="fixed top-4 right-4 z-50">
+          <BadgeLicencia />
+        </div>
+      )}
+
       <Routes>
-        {/* Rutas publicas */}
-        <Route
-          path="/login"
-          element={!user ? <Login /> : <Navigate to="/dashboard" />}
+        {/* Rutas públicas */}
+        <Route 
+          path="/login" 
+          element={!user ? <Login /> : <Navigate to="/dashboard" />} 
         />
-        <Route
-          path="/registro"
-          element={!user ? <Registro /> : <Navigate to="/dashboard" />}
-        />
-
-        {/* Rutas protegidas */}
-        <Route
-          path="/dashboard"
-          element={user ? <Dashboard /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/configuracion"
-          element={user ? <Configuracion /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/ventas"
-          element={user ? <PuntoVenta /> : <Navigate to="/login" />}
+        <Route 
+          path="/registro" 
+          element={!user ? <Registro /> : <Navigate to="/dashboard" />} 
         />
 
-        {/* CAJA - Solo Admin */}
-        <Route
-          path="/caja"
-          element={
-            user ? (
-              <RequireAdmin>
-                <Caja />
-              </RequireAdmin>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
+        {/* Rutas protegidas - Todos los usuarios */}
+        <Route 
+          path="/dashboard" 
+          element={user ? <Dashboard /> : <Navigate to="/login" />} 
+        />
+        <Route 
+          path="/configuracion" 
+          element={user ? <Configuracion /> : <Navigate to="/login" />} 
+        />
+        <Route 
+          path="/ventas" 
+          element={user ? <PuntoVenta /> : <Navigate to="/login" />} 
+        />
+        <Route 
+          path="/fiados" 
+          element={user ? <Fiados /> : <Navigate to="/login" />} 
         />
 
-        {/* INVENTARIO - Solo Admin */}
-        <Route
-          path="/inventario"
-          element={
-            user ? (
-              <RequireAdmin>
-                <Inventario />
-              </RequireAdmin>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
+        {/* Rutas protegidas - Solo Admin */}
+        <Route 
+          path="/caja" 
+          element={user ? <RequireAdmin><Caja /></RequireAdmin> : <Navigate to="/login" />} 
         />
-
-        {/* FIADOS - Todos */}
-        <Route
-          path="/fiados"
-          element={user ? <Fiados /> : <Navigate to="/login" />}
+        <Route 
+          path="/inventario" 
+          element={user ? <RequireAdmin><Inventario /></RequireAdmin> : <Navigate to="/login" />} 
         />
-
-        {/* REPORTES - Solo Admin */}
-        <Route
-          path="/reportes"
-          element={
-            user ? (
-              <RequireAdmin>
-                <Reportes />
-              </RequireAdmin>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
+        <Route 
+          path="/reportes" 
+          element={user ? <RequireAdmin><Reportes /></RequireAdmin> : <Navigate to="/login" />} 
         />
-
-        {/* USUARIOS - Solo Admin */}
-        <Route
-          path="/usuarios"
-          element={
-            user ? (
-              <RequireAdmin>
-                <Usuarios />
-              </RequireAdmin>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
+        <Route 
+          path="/usuarios" 
+          element={user ? <RequireAdmin><Usuarios /></RequireAdmin> : <Navigate to="/login" />} 
         />
-
+{/* Ruta de administración del sistema */}
+<Route 
+  path="/admin" 
+  element={user ? <Admin /> : <Navigate to="/login" />} 
+/>
         {/* Ruta por defecto */}
-        <Route
-          path="/"
-          element={<Navigate to={user ? "/dashboard" : "/login"} />}
+        <Route 
+          path="/" 
+          element={<Navigate to={user ? "/dashboard" : "/login"} />} 
         />
       </Routes>
     </BrowserRouter>

@@ -31,9 +31,13 @@ import { ScannerBarcode } from '../components/common/ScannerBarcode'
 import { HelpButton } from '../components/common/HelpButton'
 import { SectionGuide } from '../components/common/SectionGuide'
 import { MobileActions } from '../components/common/MobileActions'
+import { useLicenciaContext } from '../contexts/LicenciaContext'
 
 export const PuntoVenta = () => {
   const { user } = useAuthStore()
+
+  // Estado de licencia
+  const { puedeVender, modoSoloLectura, diasRestantes } = useLicenciaContext()
   const { cajaActual, verificarCajaAbierta } = useCajaStore()
   const { clientes: clientesFiados, cargarClientes: cargarClientesFiados } = useFiadosStore()
   const { productos, cargarProductos } = useProductosStore()
@@ -220,6 +224,25 @@ export const PuntoVenta = () => {
         </div>
       ) : (
         <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8 mb-20 lg:mb-0">
+          {/* Banner de solo lectura */}
+          {modoSoloLectura && (
+            <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <span className="text-2xl">🔒</span>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-yellow-800">
+                    Modo Solo Lectura
+                  </h3>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Tu licencia ha expirado. Podés consultar información pero no realizar nuevas ventas.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-10 gap-4">
             <div className="flex items-center gap-3">
               <h1 className="text-3xl sm:text-4xl font-black text-primary dark:text-primary-light italic">🛒 Punto de Venta</h1>
@@ -265,8 +288,9 @@ export const PuntoVenta = () => {
                         {productosFiltrados.slice(0, 8).map(producto => (
                           <button
                             key={producto.id}
-                            onClick={() => handleAgregarProducto(producto)}
-                            className="w-full text-left px-5 py-4 hover:bg-primary/5 transition-colors flex justify-between items-center group"
+                            onClick={() => puedeVender && handleAgregarProducto(producto)}
+                            disabled={!puedeVender}
+                            className={`w-full text-left px-5 py-4 hover:bg-primary/5 transition-colors flex justify-between items-center group ${!puedeVender ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             <div className="min-w-0 pr-4">
                               <p className="font-black text-gray-800 dark:text-gray-100 truncate group-hover:text-primary">{producto.nombre}</p>
@@ -280,7 +304,9 @@ export const PuntoVenta = () => {
                   </div>
                   {!busqueda && (
                     <div className="hidden sm:block mt-4 pt-4 border-t dark:border-gray-700">
-                      <Button variant="secondary" className="w-full text-xs italic" onClick={() => setModalVentaRapida(true)}>⚡ Venta Rápida</Button>
+                      <Button variant="secondary" className="w-full text-xs italic" onClick={() => setModalVentaRapida(true)} disabled={!puedeVender}>
+                        {!puedeVender ? '🔒 Licencia expirada' : '⚡ Venta Rápida'}
+                      </Button>
                     </div>
                   )}
                 </Card>
@@ -302,8 +328,9 @@ export const PuntoVenta = () => {
                       return (
                         <button
                           key={producto.id}
-                          onClick={() => handleAgregarProducto(producto)}
-                          className="flex flex-col items-center gap-1 p-2 rounded-2xl border-2 border-transparent hover:border-primary/30 hover:bg-primary/5 transition-all active:scale-90 group"
+                          onClick={() => puedeVender && handleAgregarProducto(producto)}
+                          disabled={!puedeVender}
+                          className={`flex flex-col items-center gap-1 p-2 rounded-2xl border-2 border-transparent hover:border-primary/30 hover:bg-primary/5 transition-all active:scale-90 group ${!puedeVender ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-lg font-bold group-hover:scale-110 transition-transform ${colores[idx % colores.length]}`}>
                             {producto.nombre.charAt(0).toUpperCase()}
@@ -353,7 +380,9 @@ export const PuntoVenta = () => {
                 <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Total de la Venta</p>
                 <h3 className="text-5xl font-black text-primary mb-8">${total.toFixed(2)}</h3>
                 <div className="space-y-3">
-                  <Button variant="primary" className="w-full py-6 text-xl font-black rounded-2xl" onClick={() => setModalPago(true)} disabled={carrito.length === 0}>COBRAR</Button>
+                  <Button variant="primary" className="w-full py-6 text-xl font-black rounded-2xl" onClick={() => setModalPago(true)} disabled={carrito.length === 0 || !puedeVender}>
+                    {!puedeVender ? '🔒 Licencia expirada' : 'COBRAR'}
+                  </Button>
                   <Button variant="secondary" className="w-full font-bold text-xs text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={vaciarCarrito} disabled={carrito.length === 0}>VACIAR CARRITO</Button>
                 </div>
               </Card>
@@ -389,7 +418,9 @@ export const PuntoVenta = () => {
             <Input label="Precio" type="number" step="0.01" value={precioRapido} onChange={e => setPrecioRapido(e.target.value)} required />
             <Input label="Cantidad" type="number" value={cantidadRapido} onChange={e => setCantidadRapido(e.target.value)} required />
           </div>
-          <Button type="submit" className="w-full py-4 text-xl font-black">AGREGAR AL CARRITO</Button>
+          <Button type="submit" className="w-full py-4 text-xl font-black" disabled={!puedeVender}>
+            {!puedeVender ? '🔒 Licencia expirada' : 'AGREGAR AL CARRITO'}
+          </Button>
         </form>
       </Modal>
 
@@ -506,7 +537,9 @@ export const PuntoVenta = () => {
                 <p className="text-2xl font-black">${((parseFloat(cantidadKg) / 1000) * productoKgSeleccionado.precio).toFixed(2)}</p>
               </div>
             )}
-            <Button type="submit" className="w-full py-5 text-xl font-black">AGREGAR ⚖️</Button>
+            <Button type="submit" className="w-full py-5 text-xl font-black" disabled={!puedeVender}>
+              {!puedeVender ? '🔒 Licencia expirada' : 'AGREGAR ⚖️'}
+            </Button>
           </form>
         )}
       </Modal>
@@ -517,7 +550,13 @@ export const PuntoVenta = () => {
 
       <MobileActions actions={[
         { label: 'Vaciar', icon: '🗑️', onClick: vaciarCarrito, variant: 'danger' },
-        { label: 'Cobrar', icon: '💳', onClick: () => carrito.length > 0 && setModalPago(true), variant: 'primary' }
+        {
+          label: !puedeVender ? '🔒 Bloqueado' : 'Cobrar',
+          icon: '💳',
+          onClick: () => puedeVender && carrito.length > 0 && setModalPago(true),
+          variant: 'primary',
+          disabled: !puedeVender
+        }
       ]} />
     </Layout>
   )

@@ -13,9 +13,14 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { HelpButton } from '../components/common/HelpButton'
 import { SectionGuide } from '../components/common/SectionGuide'
+import { useLicenciaContext } from '../contexts/LicenciaContext'
 
 export const Usuarios = () => {
   const { user } = useAuthStore()
+
+  // Estado de licencia
+  const { puedeEditar, modoSoloLectura } = useLicenciaContext()
+
   const { esAdmin } = usePermisos()
   const [usuarios, setUsuarios] = useState([])
   const [cargando, setCargando] = useState(false)
@@ -170,13 +175,30 @@ export const Usuarios = () => {
   return (
     <Layout>
       <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Banner de solo lectura */}
+        {modoSoloLectura && (
+          <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <span className="text-2xl">🔒</span>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">Modo Solo Lectura</h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  Podés ver usuarios pero no modificarlos. Renová tu licencia para gestionar usuarios.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-4xl font-bold text-primary italic">👥 Gestión de Usuarios</h1>
             <HelpButton onClick={() => setModalAyuda(true)} />
           </div>
-          <Button onClick={() => setModalCrear(true)}>
-            + Crear Usuario
+          <Button onClick={() => setModalCrear(true)} disabled={!puedeEditar}>
+            {!puedeEditar ? '🔒 Bloqueado' : '+ Crear Usuario'}
           </Button>
         </div>
 
@@ -223,15 +245,17 @@ export const Usuarios = () => {
                         variant={usuario.activo ? 'secondary' : 'success'}
                         onClick={() => toggleActivo(usuario)}
                         className="flex-1 text-sm"
+                        disabled={!puedeEditar}
                       >
-                        {usuario.activo ? 'Desactivar' : 'Activar'}
+                        {!puedeEditar ? '🔒' : (usuario.activo ? 'Desactivar' : 'Activar')}
                       </Button>
                       <Button
                         variant="danger"
                         onClick={() => handleEliminar(usuario)}
                         className="flex-1 text-sm"
+                        disabled={!puedeEditar}
                       >
-                        🗑️ Eliminar
+                        {!puedeEditar ? '🔒' : '🗑️ Eliminar'}
                       </Button>
                     </div>
                   )}
@@ -306,8 +330,8 @@ export const Usuarios = () => {
               </p>
             </div>
 
-            <Button type="submit" className="w-full" disabled={cargando}>
-              {cargando ? 'Creando...' : 'Crear Usuario'}
+            <Button type="submit" className="w-full" disabled={cargando || !puedeEditar}>
+              {!puedeEditar ? '🔒 Licencia expirada' : (cargando ? 'Creando...' : 'Crear Usuario')}
             </Button>
           </form>
         </Modal>

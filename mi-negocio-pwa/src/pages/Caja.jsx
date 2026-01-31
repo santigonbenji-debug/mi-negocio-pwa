@@ -30,9 +30,13 @@ import { SectionGuide } from '../components/common/SectionGuide'
 import { exportarCaja } from '../utils/exportCaja'
 import { cajaService } from '../services/caja'
 import { MobileActions } from '../components/common/MobileActions'
+import { useLicenciaContext } from '../contexts/LicenciaContext'
 
 export const Caja = () => {
   const { user } = useAuthStore()
+
+  // Estado de licencia
+  const { puedeEditar, modoSoloLectura } = useLicenciaContext()
   const {
     cajaActual,
     movimientos,
@@ -199,6 +203,23 @@ export const Caja = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Banner de solo lectura */}
+        {modoSoloLectura && (
+          <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <span className="text-2xl">🔒</span>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">Modo Solo Lectura</h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  Podés consultar movimientos de caja pero no realizar operaciones. Renová tu licencia.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
@@ -227,8 +248,8 @@ export const Caja = () => {
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
                   Abre la caja para comenzar a registrar movimientos
                 </p>
-                <Button onClick={() => setModalAbrir(true)}>
-                  Abrir Caja
+                <Button onClick={() => setModalAbrir(true)} disabled={!puedeEditar}>
+                  {!puedeEditar ? '🔒 Bloqueado' : 'Abrir Caja'}
                 </Button>
               </Card>
 
@@ -333,15 +354,17 @@ export const Caja = () => {
                     className="w-full"
                     variant="success"
                     onClick={() => setModalMovimiento(true)}
+                    disabled={!puedeEditar}
                   >
-                    + Registrar Movimiento
+                    {!puedeEditar ? '🔒 Bloqueado' : '+ Registrar Movimiento'}
                   </Button>
                   <Button
                     className="w-full"
                     variant="danger"
                     onClick={() => setModalCerrar(true)}
+                    disabled={!puedeEditar}
                   >
-                    Cerrar Caja
+                    {!puedeEditar ? '🔒 Bloqueado' : 'Cerrar Caja'}
                   </Button>
                 </div>
               </div>
@@ -415,8 +438,8 @@ export const Caja = () => {
             <p className="text-sm text-gray-600">
               Ingresa el dinero con el que comienzas el día
             </p>
-            <Button type="submit" className="w-full">
-              Abrir Caja
+            <Button type="submit" className="w-full" disabled={!puedeEditar}>
+              {!puedeEditar ? '🔒 Licencia expirada' : 'Abrir Caja'}
             </Button>
           </form>
         </Modal>
@@ -471,8 +494,8 @@ export const Caja = () => {
               placeholder="Ej: Pago a proveedor, Compra de cambio, etc."
               required
             />
-            <Button type="submit" className="w-full">
-              Registrar
+            <Button type="submit" className="w-full" disabled={!puedeEditar}>
+              {!puedeEditar ? '🔒 Licencia expirada' : 'Registrar'}
             </Button>
           </form>
         </Modal>
@@ -532,8 +555,8 @@ export const Caja = () => {
             <p className="text-sm text-gray-600">
               Cuenta el dinero físico en la caja y compáralo con el monto esperado
             </p>
-            <Button type="submit" variant="danger" className="w-full">
-              Cerrar Caja
+            <Button type="submit" variant="danger" className="w-full" disabled={!puedeEditar}>
+              {!puedeEditar ? '🔒 Licencia expirada' : 'Cerrar Caja'}
             </Button>
           </form>
         </Modal>
@@ -565,10 +588,11 @@ export const Caja = () => {
         <MobileActions
           actions={[
             {
-              label: 'Registrar',
+              label: !puedeEditar ? '🔒 Bloqueado' : 'Registrar',
               icon: '💸',
-              onClick: () => setModalMovimiento(true),
-              variant: 'success'
+              onClick: () => puedeEditar && setModalMovimiento(true),
+              variant: 'success',
+              disabled: !puedeEditar
             }
           ]}
         />
