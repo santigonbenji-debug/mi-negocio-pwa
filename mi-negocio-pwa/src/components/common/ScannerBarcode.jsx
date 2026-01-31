@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Html5Qrcode } from 'html5-qrcode'
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 
 export const ScannerBarcode = ({ onScan, onClose }) => {
   const scannerRef = useRef(null)
@@ -20,14 +20,25 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
           }
         }, 10000)
 
-        // Crear instancia del scanner
-        const html5QrCode = new Html5Qrcode('reader')
+        // Formatos de codigo de barras a soportar
+        const formatsToSupport = [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.QR_CODE
+        ]
+
+        // Crear instancia del scanner con formatos especificos
+        const html5QrCode = new Html5Qrcode('reader', { formatsToSupport, verbose: false })
         scannerRef.current = html5QrCode
 
-        // Configuracion - usar facingMode en lugar de deviceId (mas compatible con iOS)
+        // Configuracion de escaneo - area mas grande
         const config = {
-          fps: 10,
-          qrbox: { width: 250, height: 100 },
+          fps: 20,
+          qrbox: { width: 320, height: 160 },
           aspectRatio: 1.777778
         }
 
@@ -71,11 +82,11 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
           } else if (err.toString().includes('OverconstrainedError')) {
             // Intentar con camara frontal si la trasera falla
             try {
-              const html5QrCode = new Html5Qrcode('reader')
+              const html5QrCode = new Html5Qrcode('reader', { formatsToSupport, verbose: false })
               scannerRef.current = html5QrCode
               await html5QrCode.start(
                 { facingMode: "user" },
-                { fps: 10, qrbox: { width: 250, height: 100 } },
+                { fps: 20, qrbox: { width: 320, height: 160 } },
                 (decodedText) => {
                   if (mounted) {
                     html5QrCode.stop().then(() => onScan(decodedText)).catch(() => onScan(decodedText))
