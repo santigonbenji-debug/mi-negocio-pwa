@@ -12,15 +12,14 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
 
     const iniciarScanner = async () => {
       try {
-        // Timeout de seguridad - si no inicia en 10 segundos, mostrar error
         timeoutId = setTimeout(() => {
           if (mounted && cargando) {
-            setError('La camara tarda demasiado en iniciar. Intenta cerrar y abrir de nuevo.')
+            setError('La camara tarda demasiado. Intenta cerrar y abrir de nuevo.')
             setCargando(false)
           }
-        }, 10000)
+        }, 15000)
 
-        // Formatos de codigo de barras a soportar
+        // Todos los formatos de codigo de barras
         const formatsToSupport = [
           Html5QrcodeSupportedFormats.EAN_13,
           Html5QrcodeSupportedFormats.EAN_8,
@@ -28,27 +27,35 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
           Html5QrcodeSupportedFormats.UPC_E,
           Html5QrcodeSupportedFormats.CODE_128,
           Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.QR_CODE
+          Html5QrcodeSupportedFormats.CODE_93,
+          Html5QrcodeSupportedFormats.CODABAR,
+          Html5QrcodeSupportedFormats.ITF,
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.DATA_MATRIX
         ]
 
-        // Crear instancia del scanner con formatos especificos
-        const html5QrCode = new Html5Qrcode('reader', { formatsToSupport, verbose: false })
+        const html5QrCode = new Html5Qrcode('reader', {
+          formatsToSupport,
+          verbose: false
+        })
         scannerRef.current = html5QrCode
 
-        // Configuracion de escaneo - area mas grande
+        // Sin qrbox = escanea TODA la pantalla visible
         const config = {
-          fps: 20,
-          qrbox: { width: 320, height: 160 },
-          aspectRatio: 1.777778
+          fps: 30,
+          // No definir qrbox para escanear toda el area
         }
 
-        // Iniciar con camara trasera usando facingMode (mejor compatibilidad)
         await html5QrCode.start(
           { facingMode: "environment" },
           config,
           (decodedText) => {
             if (mounted) {
-              // Detener scanner y llamar callback
+              // Vibrar para feedback tactil
+              if (navigator.vibrate) {
+                navigator.vibrate(100)
+              }
+
               html5QrCode.stop().then(() => {
                 onScan(decodedText)
               }).catch(() => {
@@ -56,39 +63,41 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
               })
             }
           },
-          () => {
-            // Errores de escaneo (frames sin codigo) - ignorar
-          }
+          () => {}
         )
 
-        // Exito - limpiar timeout y actualizar estado
         if (timeoutId) clearTimeout(timeoutId)
-        if (mounted) {
-          setCargando(false)
-        }
+        if (mounted) setCargando(false)
 
       } catch (err) {
         if (timeoutId) clearTimeout(timeoutId)
         console.error('Error scanner:', err)
 
         if (mounted) {
-          // Mensajes de error amigables
           if (err.toString().includes('NotAllowedError') || err.toString().includes('Permission')) {
-            setError('Permiso de camara denegado. Ve a Configuracion > Safari > Camara y permite el acceso.')
+            setError('Permiso denegado. Permite el acceso a la camara en configuracion.')
           } else if (err.toString().includes('NotFoundError')) {
-            setError('No se encontro camara en el dispositivo.')
+            setError('No se encontro camara.')
           } else if (err.toString().includes('NotReadableError') || err.toString().includes('TrackStartError')) {
-            setError('La camara esta en uso por otra app. Cierra otras apps y reintenta.')
+            setError('Camara en uso por otra app.')
           } else if (err.toString().includes('OverconstrainedError')) {
-            // Intentar con camara frontal si la trasera falla
+            // Intentar camara frontal
             try {
+              const formatsToSupport = [
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.QR_CODE
+              ]
               const html5QrCode = new Html5Qrcode('reader', { formatsToSupport, verbose: false })
               scannerRef.current = html5QrCode
               await html5QrCode.start(
                 { facingMode: "user" },
-                { fps: 20, qrbox: { width: 320, height: 160 } },
+                { fps: 30 },
                 (decodedText) => {
                   if (mounted) {
+                    if (navigator.vibrate) navigator.vibrate(100)
                     html5QrCode.stop().then(() => onScan(decodedText)).catch(() => onScan(decodedText))
                   }
                 },
@@ -97,10 +106,10 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
               if (mounted) setCargando(false)
               return
             } catch {
-              setError('No se pudo acceder a ninguna camara.')
+              setError('No se pudo acceder a la camara.')
             }
           } else {
-            setError('Error al iniciar camara: ' + (err.message || err.toString()))
+            setError('Error: ' + (err.message || err.toString()))
           }
           setCargando(false)
         }
@@ -109,16 +118,13 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
 
     iniciarScanner()
 
-    // Cleanup
     return () => {
       mounted = false
       if (timeoutId) clearTimeout(timeoutId)
       if (scannerRef.current) {
         try {
           scannerRef.current.stop().catch(() => {})
-        } catch {
-          // Ignorar errores de cleanup
-        }
+        } catch {}
       }
     }
   }, [])
@@ -127,9 +133,7 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
     if (scannerRef.current) {
       try {
         await scannerRef.current.stop()
-      } catch {
-        // Ignorar
-      }
+      } catch {}
     }
     onClose()
   }
@@ -137,30 +141,32 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
   return (
     <div className="fixed inset-0 z-[70] bg-black flex flex-col">
       {/* Header */}
-      <div className="bg-black/80 p-4 flex justify-between items-center">
+      <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent p-4 flex justify-between items-center">
         <h3 className="font-bold text-lg text-white">
-          {cargando ? 'Iniciando camara...' : 'Escanea el codigo'}
+          {cargando ? 'Abriendo camara...' : 'Apunta al codigo'}
         </h3>
         <button
           onClick={handleCerrar}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 text-white text-2xl"
+          className="w-12 h-12 flex items-center justify-center rounded-full bg-black/50 text-white text-2xl"
         >
           ✕
         </button>
       </div>
 
       {/* Contenido */}
-      <div className="flex-1 flex flex-col items-center justify-center">
+      <div className="flex-1 relative">
         {error ? (
-          <div className="p-8 text-center max-w-sm">
-            <div className="text-6xl mb-4">📷</div>
-            <p className="text-red-400 mb-6 text-lg">{error}</p>
-            <button
-              onClick={handleCerrar}
-              className="px-8 py-3 bg-white text-black rounded-xl font-semibold"
-            >
-              Cerrar
-            </button>
+          <div className="absolute inset-0 flex items-center justify-center p-8">
+            <div className="text-center max-w-sm">
+              <div className="text-6xl mb-4">📷</div>
+              <p className="text-red-400 mb-6 text-lg">{error}</p>
+              <button
+                onClick={handleCerrar}
+                className="px-8 py-3 bg-white text-black rounded-xl font-semibold"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -168,25 +174,30 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
               <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-16 w-16 border-4 border-white/30 border-t-white mx-auto mb-4"></div>
-                  <p className="text-white text-lg">Abriendo camara...</p>
+                  <p className="text-white text-lg">Iniciando camara...</p>
                 </div>
               </div>
             )}
 
-            {/* Scanner container - siempre visible */}
-            <div id="reader" className="w-full max-w-lg"></div>
+            {/* Scanner - pantalla completa */}
+            <div id="reader" className="w-full h-full"></div>
+
+            {/* Guia visual - linea central */}
+            {!cargando && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-4/5 max-w-sm">
+                  <div className="border-2 border-green-400 rounded-lg h-24 flex items-center justify-center bg-green-400/10">
+                    <div className="w-full h-0.5 bg-green-400 animate-pulse"></div>
+                  </div>
+                  <p className="text-center text-white/80 mt-4 text-sm">
+                    Coloca el codigo de barras dentro del recuadro
+                  </p>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
-
-      {/* Instrucciones */}
-      {!error && !cargando && (
-        <div className="bg-black/80 p-6 text-center">
-          <p className="text-white/80">
-            Apunta al codigo de barras
-          </p>
-        </div>
-      )}
     </div>
   )
 }
