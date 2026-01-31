@@ -106,7 +106,9 @@ export const useAuthStore = create((set) => ({
         throw new Error('Error al completar el registro')
       }
 
-      set({ user: authData.user })
+      // NO setear user (no auto-login)
+      // Usuario debe confirmar email primero
+
       return authData
     } catch (error) {
       throw error

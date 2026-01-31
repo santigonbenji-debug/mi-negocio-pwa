@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore'
 import { Button } from '../components/common/Button'
 import { Input } from '../components/common/Input'
 import { Card } from '../components/common/Card'
+import { Modal } from '../components/common/Modal'
 import toast from 'react-hot-toast'
 
 export const Registro = () => {
@@ -12,34 +13,34 @@ export const Registro = () => {
   const [nombre, setNombre] = useState('')
   const [nombreNegocio, setNombreNegocio] = useState('')
   const [cargando, setCargando] = useState(false)
+  const [modalConfirmacion, setModalConfirmacion] = useState(false)
   const registro = useAuthStore(state => state.registro)
   const navigate = useNavigate()
 
-  const handleRegistro = async (e) => {
-    e.preventDefault()
-
-    if (password.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres')
-      return
-    }
-
-    if (!nombreNegocio.trim()) {
-      toast.error('El nombre del negocio es obligatorio')
-      return
-    }
-
-    setCargando(true)
-    try {
-      await registro(email, password, nombre, nombreNegocio)
-      toast.success('¡Cuenta creada! Revisa tu email para confirmar')
-      navigate('/login')
-    } catch (error) {
-      console.error('Error en registro:', error)
-      toast.error(error.message || 'Error al crear cuenta')
-    } finally {
-      setCargando(false)
-    }
+ const handleRegistro = async (e) => {
+  e.preventDefault()
+  
+  if (password.length < 6) {
+    toast.error('La contraseña debe tener al menos 6 caracteres')
+    return
   }
+  
+  setCargando(true)
+  
+  try {
+    // Registrar usuario
+    await registro(email, password, nombre, nombreNegocio)
+    
+    // NO hacer auto-login, mostrar mensaje
+    setModalConfirmacion(true)
+    
+  } catch (error) {
+    console.error('Error en registro:', error)
+    toast.error(error.message || 'Error al crear cuenta')
+  } finally {
+    setCargando(false)
+  }
+}
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
@@ -97,6 +98,53 @@ export const Registro = () => {
           </button>
         </p>
       </Card>
+
+      {/* Modal de confirmación de email */}
+      <Modal
+        isOpen={modalConfirmacion}
+        onClose={() => {}}
+        title="📧 Confirma tu email"
+      >
+        <div className="text-center space-y-4">
+          <div className="text-6xl">✉️</div>
+
+          <h3 className="text-xl font-bold text-gray-800">
+            ¡Casi listo!
+          </h3>
+
+          <p className="text-gray-600">
+            Te enviamos un email a:<br/>
+            <strong className="text-gray-900">{email}</strong>
+          </p>
+
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded text-left">
+            <p className="text-sm text-blue-800">
+              <strong>Pasos a seguir:</strong>
+            </p>
+            <ol className="text-sm text-blue-700 mt-2 space-y-1 list-decimal list-inside">
+              <li>Abrí tu bandeja de entrada</li>
+              <li>Buscá el email de confirmación</li>
+              <li>Hacé click en el enlace</li>
+              <li>Volvé acá e iniciá sesión</li>
+            </ol>
+          </div>
+
+          <p className="text-xs text-gray-500">
+            ¿No recibiste el email? Revisá la carpeta de spam.
+          </p>
+
+          <Button
+            variant="primary"
+            onClick={() => {
+              setModalConfirmacion(false)
+              navigate('/login')
+            }}
+            className="w-full"
+          >
+            Ir a Iniciar Sesión
+          </Button>
+        </div>
+      </Modal>
     </div>
   )
 }

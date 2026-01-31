@@ -17,21 +17,38 @@ import { LicenciaProvider, useLicenciaContext } from './contexts/LicenciaContext
 import { ModalLicenciaExpirada } from './components/common/ModalLicenciaExpirada'
 import { BadgeLicencia } from './components/common/BadgeLicencia'
 import { Admin } from './pages/Admin'
+import { useEmailVerification } from './hooks/useEmailVerification'
+import { EmailVerificationPending } from './components/auth/EmailVerificationPending'
 function App() {
-  const { user, loading, inicializar } = useAuthStore()
+  const { user, loading, inicializar, logout } = useAuthStore()
+  const { emailVerified, checking } = useEmailVerification(user)
 
   useEffect(() => {
     inicializar()
   }, [])
 
-  if (loading) {
+  // Mostrar loading mientras se verifica auth o email
+  if (loading || checking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-gray-600">Cargando...</p>
         </div>
       </div>
+    )
+  }
+
+  // Si hay usuario pero email NO verificado -> mostrar pantalla de verificacion
+  if (user && !emailVerified) {
+    return (
+      <>
+        <Toaster position="top-right" />
+        <EmailVerificationPending
+          email={user.email}
+          onLogout={logout}
+        />
+      </>
     )
   }
 
@@ -52,7 +69,6 @@ function AppContent({ user }) {
     modalAbierto,
     activarModoSoloLectura
   } = useLicenciaContext()
-
   // Si la licencia expiró y no está en modo solo lectura, mostrar modal
   if (user && expirado && !modoSoloLectura && !cargandoLicencia) {
     return (
