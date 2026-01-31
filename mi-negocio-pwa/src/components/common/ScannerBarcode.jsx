@@ -43,7 +43,12 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
         // Sin qrbox = escanea TODA la pantalla visible
         const config = {
           fps: 30,
-          // No definir qrbox para escanear toda el area
+          disableFlip: true,  // NO voltear la imagen (importante para codigos de barras)
+          videoConstraints: {
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
         }
 
         await html5QrCode.start(
@@ -94,7 +99,7 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
               scannerRef.current = html5QrCode
               await html5QrCode.start(
                 { facingMode: "user" },
-                { fps: 30 },
+                { fps: 30, disableFlip: true },
                 (decodedText) => {
                   if (mounted) {
                     if (navigator.vibrate) navigator.vibrate(100)
