@@ -17,6 +17,7 @@ import { LicenciaProvider, useLicenciaContext } from './contexts/LicenciaContext
 import { ModalLicenciaExpirada } from './components/common/ModalLicenciaExpirada'
 import { BadgeLicencia } from './components/common/BadgeLicencia'
 import { Admin } from './pages/Admin'
+import { EmailConfirmado } from './pages/EmailConfirmado'
 import { useEmailVerification } from './hooks/useEmailVerification'
 import { EmailVerificationPending } from './components/auth/EmailVerificationPending'
 function App() {
@@ -101,9 +102,13 @@ function AppContent({ user }) {
           path="/login" 
           element={!user ? <Login /> : <Navigate to="/dashboard" />} 
         />
-        <Route 
-          path="/registro" 
-          element={!user ? <Registro /> : <Navigate to="/dashboard" />} 
+        <Route
+          path="/registro"
+          element={!user ? <Registro /> : <Navigate to="/dashboard" />}
+        />
+        <Route
+          path="/email-confirmado"
+          element={<EmailConfirmado />}
         />
 
         {/* Rutas protegidas - Todos los usuarios */}
