@@ -95,16 +95,33 @@ export const useAuthStore = create((set) => ({
       if (authError) throw authError
       if (!authData.user) throw new Error('No se pudo crear el usuario')
 
-      const { data, error } = await supabase.rpc('registrar_usuario_completo', {
+      // PASO 2: Llamar RPC para crear negocio + usuario + licencia
+      const { data: rpcData, error: rpcError } = await supabase.rpc('registrar_usuario_completo', {
         p_user_id: authData.user.id,
         p_email: email,
         p_nombre: nombre,
         p_nombre_negocio: nombreNegocio
       })
 
-      if (error) {
-        throw new Error('Error al completar el registro')
+      // Verificar si la RPC fallo
+      if (rpcError) {
+        console.error('Error en RPC registrar_usuario_completo:', rpcError)
+        throw new Error(`Error al completar el registro: ${rpcError.message}`)
       }
+
+      // Verificar si la RPC retorno success: false
+      if (rpcData && !rpcData.success) {
+        console.error('RPC retorno error:', rpcData.error)
+        throw new Error(`Error al completar el registro: ${rpcData.error}`)
+      }
+
+      // Verificar que se creo el negocio
+      if (!rpcData || !rpcData.negocio_id) {
+        console.error('RPC no retorno negocio_id:', rpcData)
+        throw new Error('El registro no se completo correctamente')
+      }
+
+      console.log('Registro exitoso:', rpcData)
 
       // NO setear user (no auto-login)
       // Usuario debe confirmar email primero
