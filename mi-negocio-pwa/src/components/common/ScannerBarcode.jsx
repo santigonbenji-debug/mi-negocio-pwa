@@ -36,18 +36,29 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
 
         const html5QrCode = new Html5Qrcode('reader', {
           formatsToSupport,
-          verbose: false
+          verbose: false,
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true
+          }
         })
         scannerRef.current = html5QrCode
 
-        // Sin qrbox = escanea TODA la pantalla visible
+        // Configuración optimizada para códigos de barras
         const config = {
-          fps: 30,
+          fps: 10,  // Reducido para mejor rendimiento en móviles
           disableFlip: true,  // NO voltear la imagen (importante para codigos de barras)
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            // Área de escaneo horizontal para códigos de barras
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const qrboxWidth = Math.floor(minEdge * 0.9);  // 90% del ancho
+            const qrboxHeight = Math.floor(qrboxWidth * 0.4);  // Proporción horizontal
+            return { width: qrboxWidth, height: qrboxHeight };
+          },
           videoConstraints: {
             facingMode: "environment",
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            aspectRatio: { ideal: 1.7777778 }  // 16:9 para mejor captura
           }
         }
 
@@ -68,7 +79,7 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
               })
             }
           },
-          () => {}
+          () => { }
         )
 
         if (timeoutId) clearTimeout(timeoutId)
@@ -95,18 +106,22 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
                 Html5QrcodeSupportedFormats.CODE_128,
                 Html5QrcodeSupportedFormats.QR_CODE
               ]
-              const html5QrCode = new Html5Qrcode('reader', { formatsToSupport, verbose: false })
+              const html5QrCode = new Html5Qrcode('reader', {
+                formatsToSupport,
+                verbose: false,
+                experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+              })
               scannerRef.current = html5QrCode
               await html5QrCode.start(
                 { facingMode: "user" },
-                { fps: 30, disableFlip: true },
+                { fps: 10, disableFlip: true },
                 (decodedText) => {
                   if (mounted) {
                     if (navigator.vibrate) navigator.vibrate(100)
                     html5QrCode.stop().then(() => onScan(decodedText)).catch(() => onScan(decodedText))
                   }
                 },
-                () => {}
+                () => { }
               )
               if (mounted) setCargando(false)
               return
@@ -128,8 +143,8 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
       if (timeoutId) clearTimeout(timeoutId)
       if (scannerRef.current) {
         try {
-          scannerRef.current.stop().catch(() => {})
-        } catch {}
+          scannerRef.current.stop().catch(() => { })
+        } catch { }
       }
     }
   }, [])
@@ -138,7 +153,7 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
     if (scannerRef.current) {
       try {
         await scannerRef.current.stop()
-      } catch {}
+      } catch { }
     }
     onClose()
   }
