@@ -1,135 +1,139 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
+import Quagga from '@ericblade/quagga2'
 
 export const ScannerBarcode = ({ onScan, onClose }) => {
   const scannerRef = useRef(null)
   const [error, setError] = useState(null)
   const [cargando, setCargando] = useState(true)
+  const [lastCode, setLastCode] = useState(null)
+
+  const handleDetected = useCallback((result) => {
+    const code = result.codeResult.code
+
+    // Evitar detecciones duplicadas
+    if (code && code !== lastCode) {
+      setLastCode(code)
+
+      // Vibrar para feedback táctil
+      if (navigator.vibrate) {
+        navigator.vibrate(200)
+      }
+
+      // Detener el escáner y llamar callback
+      Quagga.stop()
+      onScan(code)
+    }
+  }, [lastCode, onScan])
 
   useEffect(() => {
     let mounted = true
-    let timeoutId = null
 
     const iniciarScanner = async () => {
       try {
-        timeoutId = setTimeout(() => {
-          if (mounted && cargando) {
-            setError('La camara tarda demasiado. Intenta cerrar y abrir de nuevo.')
+        // Verificar permisos de cámara
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        })
+        stream.getTracks().forEach(track => track.stop())
+
+        if (!mounted) return
+
+        Quagga.init({
+          inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: scannerRef.current,
+            constraints: {
+              facingMode: "environment",
+              width: { min: 640, ideal: 1280, max: 1920 },
+              height: { min: 480, ideal: 720, max: 1080 },
+              aspectRatio: { min: 1, max: 2 }
+            },
+            area: {
+              // Área de escaneo: región central
+              top: "20%",
+              right: "10%",
+              left: "10%",
+              bottom: "20%"
+            }
+          },
+          locator: {
+            patchSize: "medium",  // "small", "medium", "large", "x-large"
+            halfSample: true
+          },
+          numOfWorkers: navigator.hardwareConcurrency || 4,
+          frequency: 10,  // Intentos por segundo
+          decoder: {
+            readers: [
+              "ean_reader",        // EAN-13 y EAN-8
+              "ean_8_reader",
+              "upc_reader",        // UPC-A
+              "upc_e_reader",      // UPC-E
+              "code_128_reader",
+              "code_39_reader",
+              "codabar_reader"
+            ],
+            multiple: false
+          },
+          locate: true
+        }, (err) => {
+          if (err) {
+            console.error('Error Quagga init:', err)
+            if (mounted) {
+              if (err.name === 'NotAllowedError') {
+                setError('Permiso denegado. Permite el acceso a la cámara.')
+              } else if (err.name === 'NotFoundError') {
+                setError('No se encontró cámara.')
+              } else {
+                setError('Error al iniciar cámara: ' + err.message)
+              }
+              setCargando(false)
+            }
+            return
+          }
+
+          if (mounted) {
+            Quagga.start()
             setCargando(false)
           }
-        }, 15000)
+        })
 
-        // Todos los formatos de codigo de barras
-        const formatsToSupport = [
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.UPC_E,
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.CODE_93,
-          Html5QrcodeSupportedFormats.CODABAR,
-          Html5QrcodeSupportedFormats.ITF,
-          Html5QrcodeSupportedFormats.QR_CODE,
-          Html5QrcodeSupportedFormats.DATA_MATRIX
-        ]
+        Quagga.onDetected(handleDetected)
 
-        const html5QrCode = new Html5Qrcode('reader', {
-          formatsToSupport,
-          verbose: false,
-          experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true
+        // También escuchar cuando procesa (para depuración)
+        Quagga.onProcessed((result) => {
+          const drawingCtx = Quagga.canvas.ctx.overlay
+          const drawingCanvas = Quagga.canvas.dom.overlay
+
+          if (result) {
+            if (result.boxes) {
+              drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height)
+              result.boxes.filter(box => box !== result.box).forEach(box => {
+                Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, { color: "green", lineWidth: 2 })
+              })
+            }
+
+            if (result.box) {
+              Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, drawingCtx, { color: "#00F", lineWidth: 2 })
+            }
+
+            if (result.codeResult && result.codeResult.code) {
+              Quagga.ImageDebug.drawPath(result.line, { x: 'x', y: 'y' }, drawingCtx, { color: 'red', lineWidth: 3 })
+            }
           }
         })
-        scannerRef.current = html5QrCode
-
-        // Configuración optimizada para códigos de barras
-        const config = {
-          fps: 10,  // Reducido para mejor rendimiento en móviles
-          disableFlip: true,  // NO voltear la imagen (importante para codigos de barras)
-          qrbox: (viewfinderWidth, viewfinderHeight) => {
-            // Área de escaneo horizontal para códigos de barras
-            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const qrboxWidth = Math.floor(minEdge * 0.9);  // 90% del ancho
-            const qrboxHeight = Math.floor(qrboxWidth * 0.4);  // Proporción horizontal
-            return { width: qrboxWidth, height: qrboxHeight };
-          },
-          videoConstraints: {
-            facingMode: "environment",
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            aspectRatio: { ideal: 1.7777778 }  // 16:9 para mejor captura
-          }
-        }
-
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          config,
-          (decodedText) => {
-            if (mounted) {
-              // Vibrar para feedback tactil
-              if (navigator.vibrate) {
-                navigator.vibrate(100)
-              }
-
-              html5QrCode.stop().then(() => {
-                onScan(decodedText)
-              }).catch(() => {
-                onScan(decodedText)
-              })
-            }
-          },
-          () => { }
-        )
-
-        if (timeoutId) clearTimeout(timeoutId)
-        if (mounted) setCargando(false)
 
       } catch (err) {
-        if (timeoutId) clearTimeout(timeoutId)
         console.error('Error scanner:', err)
-
         if (mounted) {
-          if (err.toString().includes('NotAllowedError') || err.toString().includes('Permission')) {
-            setError('Permiso denegado. Permite el acceso a la camara en configuracion.')
-          } else if (err.toString().includes('NotFoundError')) {
-            setError('No se encontro camara.')
-          } else if (err.toString().includes('NotReadableError') || err.toString().includes('TrackStartError')) {
-            setError('Camara en uso por otra app.')
-          } else if (err.toString().includes('OverconstrainedError')) {
-            // Intentar camara frontal
-            try {
-              const formatsToSupport = [
-                Html5QrcodeSupportedFormats.EAN_13,
-                Html5QrcodeSupportedFormats.EAN_8,
-                Html5QrcodeSupportedFormats.UPC_A,
-                Html5QrcodeSupportedFormats.CODE_128,
-                Html5QrcodeSupportedFormats.QR_CODE
-              ]
-              const html5QrCode = new Html5Qrcode('reader', {
-                formatsToSupport,
-                verbose: false,
-                experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-              })
-              scannerRef.current = html5QrCode
-              await html5QrCode.start(
-                { facingMode: "user" },
-                { fps: 10, disableFlip: true },
-                (decodedText) => {
-                  if (mounted) {
-                    if (navigator.vibrate) navigator.vibrate(100)
-                    html5QrCode.stop().then(() => onScan(decodedText)).catch(() => onScan(decodedText))
-                  }
-                },
-                () => { }
-              )
-              if (mounted) setCargando(false)
-              return
-            } catch {
-              setError('No se pudo acceder a la camara.')
-            }
+          if (err.name === 'NotAllowedError') {
+            setError('Permiso denegado. Permite el acceso a la cámara en configuración.')
+          } else if (err.name === 'NotFoundError') {
+            setError('No se encontró cámara.')
+          } else if (err.name === 'NotReadableError') {
+            setError('Cámara en uso por otra app.')
           } else {
-            setError('Error: ' + (err.message || err.toString()))
+            setError('Error: ' + err.message)
           }
           setCargando(false)
         }
@@ -140,21 +144,14 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
 
     return () => {
       mounted = false
-      if (timeoutId) clearTimeout(timeoutId)
-      if (scannerRef.current) {
-        try {
-          scannerRef.current.stop().catch(() => { })
-        } catch { }
-      }
+      Quagga.offDetected(handleDetected)
+      Quagga.stop()
     }
-  }, [])
+  }, [handleDetected])
 
-  const handleCerrar = async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop()
-      } catch { }
-    }
+  const handleCerrar = () => {
+    Quagga.offDetected(handleDetected)
+    Quagga.stop()
     onClose()
   }
 
@@ -163,7 +160,7 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent p-4 flex justify-between items-center">
         <h3 className="font-bold text-lg text-white">
-          {cargando ? 'Abriendo camara...' : 'Apunta al codigo'}
+          {cargando ? 'Abriendo cámara...' : 'Apunta al código'}
         </h3>
         <button
           onClick={handleCerrar}
@@ -174,7 +171,7 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
       </div>
 
       {/* Contenido */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative overflow-hidden">
         {error ? (
           <div className="absolute inset-0 flex items-center justify-center p-8">
             <div className="text-center max-w-sm">
@@ -194,23 +191,29 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
               <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-16 w-16 border-4 border-white/30 border-t-white mx-auto mb-4"></div>
-                  <p className="text-white text-lg">Iniciando camara...</p>
+                  <p className="text-white text-lg">Iniciando cámara...</p>
                 </div>
               </div>
             )}
 
-            {/* Scanner - pantalla completa */}
-            <div id="reader" className="w-full h-full"></div>
+            {/* Scanner container - Quagga inserta el video aquí */}
+            <div
+              ref={scannerRef}
+              className="w-full h-full"
+              style={{ position: 'relative' }}
+            >
+              {/* Quagga insertará el <video> y <canvas> aquí */}
+            </div>
 
-            {/* Guia visual - linea central */}
+            {/* Guía visual - línea central */}
             {!cargando && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-4/5 max-w-sm">
-                  <div className="border-2 border-green-400 rounded-lg h-24 flex items-center justify-center bg-green-400/10">
-                    <div className="w-full h-0.5 bg-green-400 animate-pulse"></div>
+                <div className="w-4/5 max-w-md">
+                  <div className="border-2 border-green-400 rounded-lg h-32 flex items-center justify-center bg-green-400/10">
+                    <div className="w-full h-1 bg-green-400 animate-pulse"></div>
                   </div>
                   <p className="text-center text-white/80 mt-4 text-sm">
-                    Coloca el codigo de barras dentro del recuadro
+                    Centra el código de barras en el recuadro
                   </p>
                 </div>
               </div>
@@ -218,6 +221,21 @@ export const ScannerBarcode = ({ onScan, onClose }) => {
           </>
         )}
       </div>
+
+      {/* Estilos para el video de Quagga */}
+      <style>{`
+        #scannerRef video, 
+        .drawingBuffer {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+        }
+        .drawingBuffer {
+          position: absolute;
+          top: 0;
+          left: 0;
+        }
+      `}</style>
     </div>
   )
 }
