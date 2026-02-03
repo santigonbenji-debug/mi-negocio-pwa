@@ -99,7 +99,7 @@ export const ScannerSalesModal = ({ isOpen, onClose }) => {
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="🚀 VENTAS POR SCANNER"
+            title="🚀 VENTAS POR ESCANER"
             maxWidth="max-w-3xl"
         >
             <div className="flex flex-col gap-6">
