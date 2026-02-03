@@ -32,6 +32,8 @@ import { HelpButton } from '../components/common/HelpButton'
 import { SectionGuide } from '../components/common/SectionGuide'
 import { MobileActions } from '../components/common/MobileActions'
 import { useLicenciaContext } from '../contexts/LicenciaContext'
+import { useLaserScanner } from '../hooks/useLaserScanner'
+import { ScannerSalesModal } from '../components/ventas/ScannerSalesModal'
 
 export const PuntoVenta = () => {
   const { user } = useAuthStore()
@@ -86,6 +88,7 @@ export const PuntoVenta = () => {
 
   // Auxiliares
   const [mostrarScanner, setMostrarScanner] = useState(false)
+  const [mostrarScannerVenta, setMostrarScannerVenta] = useState(false)
   const [modalAyuda, setModalAyuda] = useState(false)
 
   const pasosAyudaPuntoVenta = [
@@ -163,6 +166,20 @@ export const PuntoVenta = () => {
     }
     setMostrarScanner(false)
   }
+
+  // Soporte de scanner global para la sección de ventas
+  useLaserScanner((codigo) => {
+    // Si ya estamos mostrando el modal de scanner, el hook interno del modal se encarga.
+    // Aquí solo actuamos si el modal de scanner NO está abierto.
+    if (!mostrarScannerVenta) {
+      const producto = productos.find(p => p.codigo_barras === codigo)
+      if (producto) {
+        handleAgregarProducto(producto)
+      } else {
+        toast.error(`Código no encontrado: ${codigo}`)
+      }
+    }
+  })
 
   const handleVentaRapida = (e) => {
     e.preventDefault()
@@ -260,6 +277,13 @@ export const PuntoVenta = () => {
                     {totalesDelDia.cantidad}
                   </span>
                 )}
+              </Button>
+              <Button
+                variant="success"
+                onClick={() => setMostrarScannerVenta(true)}
+                className="whitespace-nowrap font-black italic"
+              >
+                🚀 VENTAS POR SCANER
               </Button>
             </div>
           </div>
@@ -546,6 +570,7 @@ export const PuntoVenta = () => {
 
       <DetalleVentaModal isOpen={modalDetalle} onClose={() => { setModalDetalle(false); setVentaSeleccionada(null); }} ventaId={ventaSeleccionada} />
       {mostrarScanner && <ScannerBarcode onScan={handleScanSuccess} onClose={() => setMostrarScanner(false)} />}
+      <ScannerSalesModal isOpen={mostrarScannerVenta} onClose={() => setMostrarScannerVenta(false)} />
       <SectionGuide isOpen={modalAyuda} onClose={() => setModalAyuda(false)} title="Punto de Venta" steps={pasosAyudaPuntoVenta} />
 
       <MobileActions actions={[
