@@ -265,7 +265,7 @@ export const PuntoVenta = () => {
               <h1 className="text-3xl sm:text-4xl font-black text-primary dark:text-primary-light italic">🛒 Punto de Venta</h1>
               <HelpButton onClick={() => setModalAyuda(true)} />
             </div>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+            <div className="flex items-center gap-2 pb-1 sm:pb-0">
               <Button
                 variant={mostrarVentas ? 'primary' : 'secondary'}
                 onClick={() => setMostrarVentas(!mostrarVentas)}
@@ -283,7 +283,7 @@ export const PuntoVenta = () => {
                 onClick={() => setMostrarScannerVenta(true)}
                 className="whitespace-nowrap font-black italic"
               >
-                🚀 VENTAS POR SCANER
+                🚀 VENTAS POR ESCANER
               </Button>
             </div>
           </div>
